@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TimeTogether — where your team is, right now</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>TimeTogether</div>
+  <div class="tabs-wrap">
+    <div class="tabs" id="tabs"></div>
+    <div class="tabs-fade tabs-fade-left" id="tabsFadeLeft" aria-hidden="true"></div>
+    <div class="tabs-fade tabs-fade-right" id="tabsFadeRight" aria-hidden="true"></div>
+  </div>
+  <div class="tab-add" id="addGroupBtn" title="New group" role="button" tabindex="0">+</div>
+  <div class="topbar-actions">
+    <div class="settings-menu" id="settingsMenu">
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-haspopup="true" aria-expanded="false">⚙</button>
+      <div class="settings-dropdown" id="settingsDropdown">
+        <button id="themeToggleBtn" type="button"><span class="sd-icon">☀</span>Light mode</button>
+        <button id="exportBtn" type="button"><span class="sd-icon">⇩</span>Export data</button>
+        <button id="importBtn" type="button"><span class="sd-icon">⇧</span>Import data</button>
+        <button id="editMeBtn" type="button"><span class="sd-icon">◎</span>Edit my info</button>
+      </div>
+    </div>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="panel-header">
+    <div class="panel-title-row">
+      <input class="panel-title" id="panelTitle" spellcheck="false">
+    </div>
+    <div class="header-right">
+      <div class="sort-toggle" id="sortToggle" role="button" tabindex="0" title="Sort rows earliest to latest">
+        <span id="sortIcon">↕</span><span id="sortLabel">Sort by time</span>
+      </div>
+      <div class="now-readout"><span class="pulse"></span><span id="nowReadout"></span></div>
+    </div>
+  </div>
+
+  <div class="panel-toolbar" id="panelToolbar"></div>
+
+  <div id="content"></div>
+</div>
+
+<footer>Data lives only in this browser (localStorage) — nothing is sent anywhere. Export to back up or move devices.</footer>
+
+<div class="tooltip" id="tooltip"></div>
+<div id="onboardingRoot"></div>
+
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
