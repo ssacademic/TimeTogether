@@ -197,6 +197,19 @@
   .panel-title:hover{ background:var(--panel-raised); cursor:text; }
   .rename-hint{ color:var(--text-faint); font-size:11px; }
 
+  .delete-group-btn{
+    width:30px; height:30px; border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--panel-raised); color:var(--danger); opacity:.75;
+    cursor:pointer; font-size:14px;
+    display:flex; align-items:center; justify-content:center;
+    transition: background .15s, color .15s, opacity .15s, border-color .15s;
+    flex-shrink:0;
+  }
+  .delete-group-btn:hover{ background:var(--danger-soft); color:var(--danger); opacity:1; border-color:var(--danger); }
+  .delete-group-btn:disabled{ opacity:.25; cursor:not-allowed; color:var(--text-faint); }
+  .delete-group-btn:disabled:hover{ background:transparent; color:var(--text-faint); }
+
   .now-readout{
     font-family:var(--mono); font-size:13px; color:var(--text-dim);
     display:flex; align-items:center; gap:8px;
@@ -241,6 +254,22 @@
   .no-match{ padding:10px 12px; font-size:12.5px; color:var(--text-faint); }
 
   /* ---------- Suggest meeting times modal ---------- */
+  .suggest-people-picker{
+    display:flex; flex-wrap:wrap; gap:7px;
+    margin-bottom:18px; padding-bottom:16px;
+    border-bottom:1px solid var(--line);
+  }
+  .suggest-picker-chip{
+    display:flex; align-items:center; gap:6px;
+    padding:5px 10px 5px 6px; border-radius:999px;
+    background:var(--panel-raised); border:1px solid var(--line);
+    font-size:12.5px; font-weight:600; color:var(--text-faint);
+    cursor:pointer; transition: background .15s, border-color .15s, color .15s;
+    user-select:none; position:relative;
+  }
+  .suggest-picker-chip.checked{ color:var(--text); border-color:var(--accent); background:var(--accent-soft); }
+  .suggest-picker-chip input{ position:absolute; opacity:0; width:0; height:0; }
+
   .suggest-slot{
     border:1px solid var(--line); border-radius:12px;
     padding:12px 14px; margin-bottom:10px; background:var(--panel-raised);
@@ -268,6 +297,48 @@
   .empty-state .glyph{ font-size:34px; margin-bottom:14px; opacity:.9; }
   .empty-state h3{ color:var(--text); margin:0 0 6px; font-size:17px; }
   .empty-state p{ margin:0 0 20px; max-width:360px; font-size:14px; line-height:1.5; }
+
+  /* ---------- Combined "everyone at a glance" bar ---------- */
+  .combined-bar-wrap{
+    background: var(--panel-raised);
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px 16px;
+    margin-bottom: 16px;
+  }
+  .combined-bar-headrow{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin-bottom:10px; flex-wrap:wrap;
+  }
+  .combined-bar-label{
+    font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--text-faint);
+  }
+  .combined-bar-preview-info{
+    display:none; align-items:center; gap:8px;
+    font-size:11.5px; font-weight:700; color:var(--accent);
+  }
+  .combined-bar-preview-info.show{ display:flex; }
+  .combined-bar-preview-info button{
+    background:var(--accent-soft); border:1px solid var(--accent);
+    color:var(--accent); font-size:10.5px; font-weight:700;
+    padding:2px 8px; border-radius:999px; cursor:pointer;
+  }
+  .combined-bar-preview-info button:hover{ background:var(--accent); color:var(--bg); }
+  .combined-bar-hint{
+    font-size:10.5px; color:var(--text-faint); margin-top:6px; text-align:center;
+  }
+  .combined-track{
+    background: var(--night);
+    transition: height .2s;
+    cursor: grab;
+    touch-action: pan-y;
+  }
+  .combined-track.dragging{ cursor: grabbing; }
+  .combined-bubble{
+    transform: translate(-50%, -50%);
+    transition: left 0.6s cubic-bezier(.4,0,.2,1), top 0.2s;
+  }
 
   /* ---------- Rows ---------- */
   .rows{ display:flex; flex-direction:column; gap:10px; }
@@ -569,11 +640,11 @@
   </div>
   <div class="tab-add" id="addGroupBtn" title="New group" role="button" tabindex="0">+</div>
   <div class="topbar-actions">
+    <button class="icon-btn" id="themeToggleBtn" type="button" title="Toggle light/dark theme">☀</button>
     <button class="icon-btn" id="helpBtn" title="How this works">?</button>
     <div class="settings-menu" id="settingsMenu">
       <button class="icon-btn" id="settingsBtn" title="Settings" aria-haspopup="true" aria-expanded="false">⚙</button>
       <div class="settings-dropdown" id="settingsDropdown">
-        <button id="themeToggleBtn" type="button"><span class="sd-icon">☀</span>Light mode</button>
         <button id="exportBtn" type="button"><span class="sd-icon">⇩</span>Export data</button>
         <button id="importBtn" type="button"><span class="sd-icon">⇧</span>Import data</button>
         <button id="editMeBtn" type="button"><span class="sd-icon">◎</span>Edit my info</button>
@@ -588,6 +659,7 @@
   <div class="panel-header">
     <div class="panel-title-row">
       <input class="panel-title" id="panelTitle" spellcheck="false">
+      <button class="delete-group-btn" id="deleteGroupBtn" title="Delete this group" aria-label="Delete this group">🗑</button>
     </div>
     <div class="header-right">
       <div class="sort-toggle" id="sortToggle" role="button" tabindex="0" title="Sort rows earliest to latest">
@@ -925,6 +997,39 @@ function suggestMeetingTimes(people, fromDate = new Date(), topN = 3, opts = SCO
   return picked;
 }
 
+/**
+ * Assigns a vertical "lane" to each item so overlapping markers on a shared
+ * axis (e.g. multiple people whose local time lands within `minGapPct` of
+ * each other on a combined timeline) stack instead of drawing on top of one
+ * another. `items` must each have a numeric `.pct` field (0-100). Greedy:
+ * sort by position, reuse the first lane far enough from its last occupant,
+ * otherwise open a new lane. Returns new objects (originals untouched) with
+ * a `.lane` field added (0 = first/bottom lane).
+ */
+function assignLanes(items, minGapPct) {
+  const sorted = items.slice().sort((a, b) => a.pct - b.pct);
+  const laneLastPct = [];
+  return sorted.map(item => {
+    let lane = laneLastPct.findIndex(lastPct => Math.abs(item.pct - lastPct) >= minGapPct);
+    if (lane === -1) { lane = laneLastPct.length; laneLastPct.push(item.pct); }
+    else { laneLastPct[lane] = item.pct; }
+    return { ...item, lane };
+  });
+}
+
+/**
+ * Formats a signed minute offset for the combined bar's drag-to-preview
+ * label, e.g. 210 -> "+3h 30m", -45 -> "−45m", 120 -> "+2h".
+ */
+function formatOffsetLabel(minutes) {
+  const sign = minutes >= 0 ? '+' : '−';
+  const abs = Math.abs(minutes);
+  const h = Math.floor(abs / 60), m = abs % 60;
+  if (h === 0) return `${sign}${m}m`;
+  if (m === 0) return `${sign}${h}h`;
+  return `${sign}${h}h ${m}m`;
+}
+
 // Export for both browser (global) and Node (tests) use.
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -932,7 +1037,7 @@ if (typeof module !== 'undefined' && module.exports) {
     searchPlaces, UTC_OFFSETS,
     isFixedTz, fixedTzMinutes, makeFixedTz,
     SCORING, personHourCost, scoreInstant, suggestMeetingTimes,
-    snapUpToHalfHour, roundToBetterMark
+    snapUpToHalfHour, roundToBetterMark, assignLanes, formatOffsetLabel
   };
 }
 
@@ -980,10 +1085,13 @@ function seedState() {
   const g1 = {
     id: uid(), name: 'Example Team', sortByTime: false,
     people: [
-      person('Amy', 'San Francisco', '😎', '#F2A65A'),
-      person('Raj', 'Bengaluru', '🚀', '#7C9CFF'),
-      person('Lena', 'Berlin', '🌸', '#6FCF97'),
-      person('Kenji', 'Tokyo', '🔥', '#E37373'),
+      person('Mat', 'Madrid', '🎸', '#F2A65A'),
+      // Clovis, CA isn't in the built-in city list; San Francisco shares the
+      // exact same time zone (America/Los_Angeles), so it's a faithful
+      // stand-in — see the README for how to do this for your own team.
+      person('Carli', 'San Francisco', '🌉', '#7C9CFF'),
+      person('Christine', 'Singapore', '🌺', '#6FCF97'),
+      person('Pranav', 'Vancouver', '🏔️', '#E37373'),
     ]
   };
   return { activeGroup: g1.id, groups: [g1], me: null };
@@ -1036,9 +1144,12 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
   const btn = el('themeToggleBtn');
-  if (btn) btn.innerHTML = theme === 'dark'
-    ? `<span class="sd-icon">☀</span>Light mode`
-    : `<span class="sd-icon">☾</span>Dark mode`;
+  if (btn) {
+    // Icon shows what the button DOES (switch to the other theme), not the
+    // current theme, matching how the sort-toggle etc. read elsewhere.
+    btn.textContent = theme === 'dark' ? '☀' : '☾';
+    btn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+  }
 }
 let currentTheme = loadTheme();
 applyTheme(currentTheme);
@@ -1115,7 +1226,7 @@ function renderTabs() {
     t.setAttribute('role', 'button');
     t.tabIndex = 0;
     t.innerHTML = `<span>${escapeHtml(g.name)}</span><span class="count">${g.people.length}</span>`;
-    t.addEventListener('click', () => { state.activeGroup = g.id; save(); renderAll(); });
+    t.addEventListener('click', () => { resetCombinedBarPreview(); state.activeGroup = g.id; save(); renderAll(); });
     t.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') t.click(); });
     tabsEl.appendChild(t);
   });
@@ -1125,7 +1236,27 @@ function renderTabs() {
 
 function renderPanelTitle() {
   panelTitleEl.value = activeGroup().name;
+  const deleteBtn = el('deleteGroupBtn');
+  // Disable rather than hide when it's the only group left, so it's clear
+  // deletion is possible in principle but there's always at least one group.
+  deleteBtn.disabled = state.groups.length <= 1;
+  deleteBtn.title = deleteBtn.disabled ? "Can't delete your only group" : 'Delete this group';
 }
+
+function deleteActiveGroup() {
+  const g = activeGroup();
+  if (state.groups.length <= 1) return; // guarded in the UI too, but never allow zero groups
+  const ok = confirm(`Delete "${g.name}"? This removes everyone in it. This can't be undone.`);
+  if (!ok) return;
+  const idx = state.groups.findIndex(x => x.id === g.id);
+  state.groups.splice(idx, 1);
+  // Land on a sensible neighboring group rather than always jumping to the first.
+  const next = state.groups[idx] || state.groups[idx - 1] || state.groups[0];
+  state.activeGroup = next.id;
+  save();
+  renderAll();
+}
+el('deleteGroupBtn').addEventListener('click', deleteActiveGroup);
 
 function renderPanelToolbar() {
   const g = activeGroup();
@@ -1160,6 +1291,174 @@ function displayPeopleFor(g, now) {
     .map(x => x.p);
 }
 
+/** Module-level preview state for the combined bar's drag-to-preview feature.
+ * Deliberately NOT part of `state` (never saved) -- it's a transient view,
+ * not data. Reset on group switch, after 60s idle, or via the Reset button. */
+const combinedBarPreview = { offsetMinutes: 0, idleTimer: null };
+
+function resetCombinedBarPreview() {
+  combinedBarPreview.offsetMinutes = 0;
+  if (combinedBarPreview.idleTimer) { clearTimeout(combinedBarPreview.idleTimer); combinedBarPreview.idleTimer = null; }
+}
+function schedulePreviewAutoReset() {
+  if (combinedBarPreview.idleTimer) clearTimeout(combinedBarPreview.idleTimer);
+  combinedBarPreview.idleTimer = setTimeout(() => {
+    resetCombinedBarPreview();
+    renderContent();
+  }, 60000); // auto-reset after a minute of no dragging, so a stale preview can't be mistaken for real time
+}
+
+/** Renders just the track + bubbles + hourscale for the combined bar, given
+ * a (possibly preview-shifted) instant. Kept separate from the wrapper/label
+ * so dragging can re-render this part alone without touching drag listeners
+ * attached to the wrapper. */
+function renderCombinedTrackContents(people, instant) {
+  const items = people.map(p => {
+    const { hourFloat } = localTimeParts(p.tz, instant);
+    return { p, hourFloat, pct: hourFloat / 24 * 100 };
+  });
+  const laned = assignLanes(items, 4.5);
+  const laneCount = Math.max(...laned.map(x => x.lane)) + 1;
+
+  const workLeft = (SCORING.workStart / 24 * 100).toFixed(3);
+  const workWidth = ((SCORING.workEnd - SCORING.workStart) / 24 * 100).toFixed(3);
+  const trackHeight = 26 + (laneCount - 1) * 24;
+
+  const bubbles = laned.map(({ p, hourFloat, pct, lane }) => {
+    const clock = formatClock(p.tz, instant);
+    const top = 13 + lane * 24;
+    return `<div class="bubble combined-bubble" style="left:${pct.toFixed(3)}%; top:${top}px; background:${p.color}" data-tip="${escapeHtml(p.name)}${p.isMe ? ' (you)' : ''} · ${escapeHtml(p.city)} · ${clock}">${avatarInner(p)}</div>`;
+  }).join('');
+
+  return { trackHeight, workLeft, workWidth, bubbles };
+}
+
+/** Renders the "everyone at a glance" combined bar: one shared 24h axis on
+ * the viewer's own local day (not any one teammate's), with every person's
+ * bubble placed at their current time on that shared axis. Day/night shading
+ * isn't shown here (it would only be true for one person), just a neutral
+ * 9am-6pm band on the viewer's own clock, so it reads as "who's near MY
+ * working hours right now" rather than implying a false shared day/night.
+ *
+ * Draggable: click-and-drag anywhere on the track to preview a different
+ * shared instant -- every bubble shifts together, so you can visually hunt
+ * for a time that works for everyone. Purely a view-layer preview (never
+ * saved), auto-resets after 60s idle or via the Reset control. */
+function renderCombinedBar(people, now) {
+  if (people.length < 2) return ''; // not useful with 0-1 people, and avoids an empty/lonely bar
+
+  const previewInstant = new Date(now.getTime() + combinedBarPreview.offsetMinutes * 60000);
+  const isPreviewing = combinedBarPreview.offsetMinutes !== 0;
+  const { trackHeight, workLeft, workWidth, bubbles } = renderCombinedTrackContents(people, previewInstant);
+
+  return `
+  <div class="combined-bar-wrap">
+    <div class="combined-bar-headrow">
+      <div class="combined-bar-label">Everyone, on your clock</div>
+      <div class="combined-bar-preview-info${isPreviewing ? ' show' : ''}" id="combinedPreviewInfo">
+        <span id="combinedPreviewLabel">Previewing ${formatOffsetLabel(combinedBarPreview.offsetMinutes)}</span>
+        <button type="button" id="combinedResetBtn">Reset</button>
+      </div>
+    </div>
+    <div class="track-wrap">
+      <div class="track combined-track" id="combinedTrack" style="height:${trackHeight}px">
+        <div class="worktime-band" style="left:${workLeft}%; width:${workWidth}%"></div>
+        <div class="track-hourlines">${'<div></div>'.repeat(24)}</div>
+        ${bubbles}
+      </div>
+      <div class="hourscale">${hourScaleLabels()}</div>
+    </div>
+    <div class="combined-bar-hint">Drag the bar to preview another time for everyone</div>
+  </div>`;
+}
+
+/** Shared, module-level drag state for the combined bar. Only one drag can
+ * be active at a time (there's only one combined bar on screen), so this is
+ * simpler and safer than per-render closures, which would otherwise leak a
+ * fresh set of document-level mousemove/mouseup listeners on every single
+ * re-render (every 30s, every group switch, every add/remove person). */
+const combinedBarDrag = { active: false, startX: 0, startOffsetMinutes: 0, people: null };
+
+function updateCombinedPreviewFromDrag(clientX) {
+  const track = el('combinedTrack');
+  if (!track) { combinedBarDrag.active = false; return; }
+  const rect = track._dragStartRect || track.getBoundingClientRect();
+  const minutesPerPixel = rect.width > 0 ? (24 * 60) / rect.width : 0;
+  const deltaPx = clientX - combinedBarDrag.startX;
+  const rawMinutes = combinedBarDrag.startOffsetMinutes + deltaPx * minutesPerPixel;
+  // Snap the preview to a clean half-hour mark, consistent with how meeting
+  // suggestions are rounded elsewhere in the app.
+  combinedBarPreview.offsetMinutes = Math.round(rawMinutes / 30) * 30;
+
+  const now = new Date();
+  const previewInstant = new Date(now.getTime() + combinedBarPreview.offsetMinutes * 60000);
+  const { trackHeight, workLeft, workWidth, bubbles } = renderCombinedTrackContents(combinedBarDrag.people, previewInstant);
+  track.style.height = trackHeight + 'px';
+  track.innerHTML = `
+    <div class="worktime-band" style="left:${workLeft}%; width:${workWidth}%"></div>
+    <div class="track-hourlines">${'<div></div>'.repeat(24)}</div>
+    ${bubbles}`;
+  track.querySelectorAll('.bubble').forEach(bubble => {
+    bubble.addEventListener('mouseenter', e => showTooltip(e, bubble.dataset.tip));
+    bubble.addEventListener('mousemove', positionTooltip);
+    bubble.addEventListener('mouseleave', hideTooltip);
+  });
+  const infoEl = el('combinedPreviewInfo');
+  const labelEl = el('combinedPreviewLabel');
+  if (infoEl && labelEl) {
+    const isPreviewing = combinedBarPreview.offsetMinutes !== 0;
+    infoEl.classList.toggle('show', isPreviewing);
+    labelEl.textContent = `Previewing ${formatOffsetLabel(combinedBarPreview.offsetMinutes)}`;
+  }
+  schedulePreviewAutoReset();
+}
+
+function endCombinedBarDrag() {
+  if (!combinedBarDrag.active) return;
+  combinedBarDrag.active = false;
+  const track = el('combinedTrack');
+  if (track) track.classList.remove('dragging');
+}
+
+// Registered ONCE at load time, not per-render -- see combinedBarDrag comment above.
+document.addEventListener('mousemove', e => { if (combinedBarDrag.active) updateCombinedPreviewFromDrag(e.clientX); });
+document.addEventListener('mouseup', endCombinedBarDrag);
+document.addEventListener('touchmove', e => { if (combinedBarDrag.active) updateCombinedPreviewFromDrag(e.touches[0].clientX); }, { passive: true });
+document.addEventListener('touchend', endCombinedBarDrag);
+
+/** Re-attaches the drag START listeners to the (freshly rendered) track
+ * element itself. Safe to call on every render: the track element is a new
+ * DOM node each time (innerHTML replaced it), so old listeners on the old
+ * node are simply discarded by the browser -- no leak, unlike document-level
+ * listeners which would persist across renders if re-added each time. */
+function wireCombinedBarDrag(people) {
+  const track = el('combinedTrack');
+  if (!track) return;
+  combinedBarDrag.people = people; // used by the shared document-level move handler above
+
+  const resetBtn = el('combinedResetBtn');
+  if (resetBtn) resetBtn.addEventListener('click', () => {
+    resetCombinedBarPreview();
+    renderContent();
+  });
+
+  track.addEventListener('mousedown', e => {
+    combinedBarDrag.active = true;
+    combinedBarDrag.startX = e.clientX;
+    combinedBarDrag.startOffsetMinutes = combinedBarPreview.offsetMinutes;
+    track._dragStartRect = track.getBoundingClientRect();
+    track.classList.add('dragging');
+    e.preventDefault();
+  });
+  track.addEventListener('touchstart', e => {
+    combinedBarDrag.active = true;
+    combinedBarDrag.startX = e.touches[0].clientX;
+    combinedBarDrag.startOffsetMinutes = combinedBarPreview.offsetMinutes;
+    track._dragStartRect = track.getBoundingClientRect();
+    track.classList.add('dragging');
+  }, { passive: true });
+}
+
 function renderContent() {
   const g = activeGroup();
   const now = new Date();
@@ -1175,7 +1474,7 @@ function renderContent() {
     return;
   }
 
-  let html = `<div class="rows">`;
+  let html = renderCombinedBar(people, now) + `<div class="rows">`;
   people.forEach(p => {
     const { hourFloat } = localTimeParts(p.tz, now);
     const clock = formatClock(p.tz, now);
@@ -1229,6 +1528,15 @@ function renderContent() {
   html += `</div>`;
   contentEl.innerHTML = html;
 
+  // Wire tooltips for every bubble on the page, including the combined bar's.
+  contentEl.querySelectorAll('.bubble').forEach(bubble => {
+    bubble.addEventListener('mouseenter', e => showTooltip(e, bubble.dataset.tip));
+    bubble.addEventListener('mousemove', positionTooltip);
+    bubble.addEventListener('mouseleave', hideTooltip);
+  });
+
+  wireCombinedBarDrag(people);
+
   people.forEach(p => {
     const row = contentEl.querySelector(`.person-row[data-id="${p.id}"]`);
     if (!row) return;
@@ -1243,10 +1551,6 @@ function renderContent() {
         save(); renderAll();
       }
     });
-    const bubble = row.querySelector('.bubble');
-    bubble.addEventListener('mouseenter', e => showTooltip(e, bubble.dataset.tip));
-    bubble.addEventListener('mousemove', positionTooltip);
-    bubble.addEventListener('mouseleave', hideTooltip);
   });
 }
 
@@ -1558,8 +1862,8 @@ function openPersonModal(personId) {
 
 function openSuggestModal() {
   const g = activeGroup();
-  const people = displayPeopleFor(g, new Date()); // includes "me" if set, so suggestions account for your own schedule too
-  const suggestions = suggestMeetingTimes(people, new Date(), 3);
+  const allPeople = displayPeopleFor(g, new Date()); // includes "me" if set, so suggestions account for your own schedule too
+  const included = new Set(allPeople.map(p => p.id)); // everyone starts checked
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -1567,6 +1871,7 @@ function openSuggestModal() {
     <div class="modal" role="dialog" aria-modal="true">
       <h2>Good times to meet</h2>
       <p class="sub">Ranked to avoid badly inconveniencing any one person — not just the lowest total. Times are rounded to the nearest half hour.</p>
+      <div class="suggest-people-picker" id="suggestPeoplePicker"></div>
       <div id="suggestList"></div>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="closeSuggest" type="button">Close</button>
@@ -1577,36 +1882,68 @@ function openSuggestModal() {
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   overlay.querySelector('#closeSuggest').addEventListener('click', () => overlay.remove());
 
+  const pickerEl = overlay.querySelector('#suggestPeoplePicker');
   const listEl = overlay.querySelector('#suggestList');
-  if (!suggestions.length) {
+
+  function renderPicker() {
+    pickerEl.innerHTML = allPeople.map(p => `
+      <label class="suggest-picker-chip${included.has(p.id) ? ' checked' : ''}">
+        <input type="checkbox" data-pid="${p.id}" ${included.has(p.id) ? 'checked' : ''}>
+        <span class="row-avatar" style="width:18px;height:18px;font-size:9px;background:${p.color}">${avatarInner(p)}</span>
+        ${escapeHtml(p.name)}${p.isMe ? ' (you)' : ''}
+      </label>
+    `).join('');
+    pickerEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const pid = cb.dataset.pid;
+        if (cb.checked) included.add(pid); else included.delete(pid);
+        cb.closest('.suggest-picker-chip').classList.toggle('checked', cb.checked);
+        renderResults();
+      });
+    });
+  }
+
+  function renderResults() {
+    const activePeople = allPeople.filter(p => included.has(p.id));
+    if (activePeople.length < 2) {
+      listEl.innerHTML = `<p class="hint">Select at least two people to see suggested times.</p>`;
+      return;
+    }
+    const suggestions = suggestMeetingTimes(activePeople, new Date(), 3);
+    listEl.innerHTML = suggestions.map((s, i) => {
+      const rows = s.perPerson.map(pp => {
+        const person = activePeople.find(p => p.id === pp.personId);
+        const clockStr = formatClock(person.tz, s.instant);
+        const tag = pp.cost === 0 ? 'good' : pp.cost < 1 ? 'day' : 'night';
+        const tagText = pp.cost === 0 ? 'Working hrs' : pp.cost < 1 ? 'Outside hours' : 'Asleep';
+        return `<div class="suggest-person">
+          <span class="row-avatar" style="width:22px;height:22px;font-size:11px;background:${person.color}">${avatarInner(person)}</span>
+          <span class="suggest-name">${escapeHtml(person.name)}${person.isMe ? ' (you)' : ''}</span>
+          <span class="suggest-clock">${clockStr}</span>
+          <span class="row-daylabel ${tag}" style="font-size:9.5px;">${tagText}</span>
+        </div>`;
+      }).join('');
+      const whenLabel = s.instant.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true }) + ' (your time)';
+      return `
+        <div class="suggest-slot">
+          <div class="suggest-slot-head">
+            <span class="suggest-rank">#${i + 1}</span>
+            <span class="suggest-when">${whenLabel}</span>
+          </div>
+          <div class="suggest-why">Hardest on <strong>${escapeHtml(s.worstPerson)}</strong></div>
+          <div class="suggest-people">${rows}</div>
+        </div>`;
+    }).join('');
+  }
+
+  if (allPeople.length < 2) {
+    pickerEl.innerHTML = '';
     listEl.innerHTML = `<p class="hint">Add at least two people to get suggestions.</p>`;
     return;
   }
 
-  listEl.innerHTML = suggestions.map((s, i) => {
-    const rows = s.perPerson.map(pp => {
-      const person = people.find(p => p.id === pp.personId);
-      const clockStr = formatClock(person.tz, s.instant);
-      const tag = pp.cost === 0 ? 'good' : pp.cost < 1 ? 'day' : 'night';
-      const tagText = pp.cost === 0 ? 'Working hrs' : pp.cost < 1 ? 'Outside hours' : 'Asleep';
-      return `<div class="suggest-person">
-        <span class="row-avatar" style="width:22px;height:22px;font-size:11px;background:${person.color}">${avatarInner(person)}</span>
-        <span class="suggest-name">${escapeHtml(person.name)}${person.isMe ? ' (you)' : ''}</span>
-        <span class="suggest-clock">${clockStr}</span>
-        <span class="row-daylabel ${tag}" style="font-size:9.5px;">${tagText}</span>
-      </div>`;
-    }).join('');
-    const whenLabel = s.instant.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true }) + ' (your time)';
-    return `
-      <div class="suggest-slot">
-        <div class="suggest-slot-head">
-          <span class="suggest-rank">#${i + 1}</span>
-          <span class="suggest-when">${whenLabel}</span>
-        </div>
-        <div class="suggest-why">Hardest on <strong>${escapeHtml(s.worstPerson)}</strong></div>
-        <div class="suggest-people">${rows}</div>
-      </div>`;
-  }).join('');
+  renderPicker();
+  renderResults();
 }
 
 /* ---------------------------------------------------------------------------
@@ -1630,10 +1967,12 @@ document.addEventListener('click', (e) => {
   if (!settingsMenuEl.contains(e.target)) closeSettingsDropdown();
 });
 
+// Theme toggle is a standalone top-bar button now (not inside the settings
+// dropdown), since it's a single, frequent, binary action — a direct icon
+// button is more discoverable and one fewer click than burying it in a menu.
 el('themeToggleBtn').addEventListener('click', () => {
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(currentTheme);
-  closeSettingsDropdown();
 });
 
 el('editMeBtn').addEventListener('click', () => {
@@ -1898,7 +2237,11 @@ else if (!loadTourSeen()) openTour();
  * -------------------------------------------------------------------------*/
 
 renderAll();
-setInterval(() => { renderContent(); renderNowReadout(); }, 30000);
+setInterval(() => {
+  if (combinedBarDrag.active) return; // don't tear down the DOM mid-drag
+  renderContent();
+  renderNowReadout();
+}, 30000);
 
 </script>
 </body>
