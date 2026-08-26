@@ -28,11 +28,19 @@
     --bubble-ring: rgba(11,12,19,0.9);
     --day-fill: rgba(124,156,255,0.22);
     --night-fill: rgba(10,11,18,0.9);
+    --dusk-fill: rgba(242,166,90,0.28);
     --tooltip-bg: #22263A;
     --tooltip-text: #F3F4F8;
     --hourline-color: rgba(255,255,255,0.045);
     --worktime-fill: rgba(111,207,151,0.10);
     --worktime-border: rgba(111,207,151,0.35);
+    --badge-day-bg: rgba(124,156,255,0.18);
+    --badge-day-text: #AFC1FF;
+    --badge-night-bg: rgba(255,255,255,0.06);
+    --badge-good-bg: rgba(111,207,151,0.16);
+    --badge-good-text: #6FCF97;
+    --avatar-ring: rgba(255,255,255,0.12);
+    --bubble-glow-ring: rgba(255,255,255,0.08);
     --mono: 'SFMono-Regular', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
@@ -58,9 +66,17 @@
     --bubble-ring: rgba(255,255,255,0.9);
     --day-fill: rgba(76,111,224,0.14);
     --night-fill: rgba(140,146,175,0.28);
+    --dusk-fill: rgba(219,129,56,0.22);
     --hourline-color: #C7CBDA;
     --worktime-fill: rgba(46,158,99,0.10);
     --worktime-border: rgba(46,158,99,0.4);
+    --badge-day-bg: #E4EAFC;
+    --badge-day-text: #2E4FD1;
+    --badge-night-bg: #EEF0F7;
+    --badge-good-bg: #E1F5E9;
+    --badge-good-text: #247A4D;
+    --avatar-ring: rgba(20,24,40,0.14);
+    --bubble-glow-ring: rgba(20,24,40,0.10);
   }
 
   *{box-sizing:border-box;}
@@ -363,7 +379,7 @@
   }
   .combined-bubble.next-day,
   .combined-bubble.prev-day{
-    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.08), 2px -2px 0 1px var(--accent);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 2px var(--bubble-glow-ring), 2px -2px 0 1px var(--accent);
   }
 
   /* ---------- Rows ---------- */
@@ -386,7 +402,7 @@
     display:flex; align-items:center; justify-content:center;
     font-size:14px; font-weight:700; color:var(--bg);
     flex-shrink:0; overflow:hidden;
-    border: 2px solid rgba(255,255,255,0.12);
+    border: 2px solid var(--avatar-ring);
   }
   .row-avatar img{ width:100%; height:100%; object-fit:cover; }
 
@@ -412,9 +428,9 @@
     font-weight:700; letter-spacing:.03em; text-transform:uppercase;
     white-space:nowrap;
   }
-  .row-daylabel.day{ background:rgba(124,156,255,0.18); color:#AFC1FF; }
-  .row-daylabel.night{ background:rgba(255,255,255,0.06); color:var(--text-faint); }
-  .row-daylabel.good{ background:rgba(111,207,151,0.16); color:var(--good); }
+  .row-daylabel.day{ background:var(--badge-day-bg); color:var(--badge-day-text); }
+  .row-daylabel.night{ background:var(--badge-night-bg); color:var(--text-faint); border:1px solid var(--line); }
+  .row-daylabel.good{ background:var(--badge-good-bg); color:var(--badge-good-text); }
 
   .row-actions{ display:flex; gap:4px; margin-left:4px; }
   .row-actions button{
@@ -481,7 +497,7 @@
     display:flex; align-items:center; justify-content:center;
     font-size:12px; font-weight:800; color:var(--bg);
     border:2px solid var(--bubble-ring);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.08);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 2px var(--bubble-glow-ring);
     cursor:pointer;
     transition: left 0.6s cubic-bezier(.4,0,.2,1);
     overflow:hidden;
@@ -568,7 +584,7 @@
     display:flex;align-items:center;justify-content:center;
     font-weight:800; font-size:17px; color:var(--bg);
     margin: 0 auto 14px; overflow:hidden;
-    border:2px solid rgba(255,255,255,0.12);
+    border:2px solid var(--avatar-ring);
   }
   .avatar-preview img{ width:100%; height:100%; object-fit:cover; }
 
@@ -1302,15 +1318,28 @@ function buildGradient(sunrise, sunset) {
   const rootStyle = getComputedStyle(document.documentElement);
   const dayColor = rootStyle.getPropertyValue('--day-fill').trim() || 'rgba(124,156,255,0.22)';
   const nightColor = rootStyle.getPropertyValue('--night-fill').trim() || 'rgba(10,11,18,0.9)';
+  const duskColor = rootStyle.getPropertyValue('--dusk-fill').trim() || 'rgba(242,166,90,0.28)';
   if (sunrise === null || sunset === null) return `linear-gradient(90deg, ${nightColor}, ${nightColor})`;
-  const pct = h => (h / 24 * 100).toFixed(2) + '%';
-  const fadeW = 0.7;
-  const sr1 = Math.max(0, sunrise - fadeW), sr2 = Math.min(24, sunrise + fadeW);
-  const ss1 = Math.max(0, sunset - fadeW), ss2 = Math.min(24, sunset + fadeW);
+  const pct = h => (Math.max(0, Math.min(24, h)) / 24 * 100).toFixed(2) + '%';
+  // A genuinely gradual fade: night holds, then WARMS through an explicit
+  // dusk/dawn color (not just a direct night->day blend) before settling
+  // into day, and the same in reverse around sunset. Widened from the old
+  // 0.7h half-width to 1.5h so the fade is actually perceptible, not just
+  // technically-interpolated-but-narrow. Clamped to at most a quarter of the
+  // day length so the two fade windows can't overlap and invert the stop
+  // order (a real edge case at high latitudes, where sunrise and sunset can
+  // be only an hour or two apart in winter — verified with Reykjavik-like
+  // inputs before shipping).
+  const dayLength = sunset - sunrise;
+  const fadeW = Math.max(0.25, Math.min(1.5, dayLength / 4));
+  const srStart = sunrise - fadeW, srMid = sunrise, srEnd = sunrise + fadeW;
+  const ssStart = sunset - fadeW, ssMid = sunset, ssEnd = sunset + fadeW;
   return `linear-gradient(90deg,
-    ${nightColor} 0%, ${nightColor} ${pct(sr1)},
-    ${dayColor} ${pct(sr2)}, ${dayColor} ${pct(ss1)},
-    ${nightColor} ${pct(ss2)}, ${nightColor} 100%)`;
+    ${nightColor} 0%, ${nightColor} ${pct(srStart)},
+    ${duskColor} ${pct(srMid)},
+    ${dayColor} ${pct(srEnd)}, ${dayColor} ${pct(ssStart)},
+    ${duskColor} ${pct(ssMid)},
+    ${nightColor} ${pct(ssEnd)}, ${nightColor} 100%)`;
 }
 
 /** "1 AM", "12 PM", etc. Full AM/PM instead of a bare "a"/"p" for readability (#9). */
@@ -2143,6 +2172,14 @@ document.addEventListener('click', (e) => {
 el('themeToggleBtn').addEventListener('click', () => {
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(currentTheme);
+  // applyTheme only flips the data-theme attribute (which updates plain CSS
+  // custom-property lookups immediately) -- but buildGradient() bakes
+  // resolved colors into an inline style string at render time, so without
+  // this, every row's day/night gradient (and anything else computed via
+  // getComputedStyle rather than a live var() reference) would keep showing
+  // the OLD theme's colors until some unrelated action happened to trigger
+  // another render. Re-render immediately so the whole page updates in lockstep.
+  renderContent();
 });
 
 el('editMeBtn').addEventListener('click', () => {
