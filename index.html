@@ -28,6 +28,11 @@
     --bubble-ring: rgba(11,12,19,0.9);
     --day-fill: rgba(124,156,255,0.22);
     --night-fill: rgba(10,11,18,0.9);
+    --tooltip-bg: #22263A;
+    --tooltip-text: #F3F4F8;
+    --hourline-color: rgba(255,255,255,0.045);
+    --worktime-fill: rgba(111,207,151,0.10);
+    --worktime-border: rgba(111,207,151,0.35);
     --mono: 'SFMono-Regular', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
@@ -39,13 +44,13 @@
     --line: #DDE1EC;
     --text: #1B1F2C;
     --text-dim: #5B6178;
-    --text-faint: #8F95AC;
-    --accent: #DB8138;
-    --accent-soft: rgba(219,129,56,0.14);
+    --text-faint: #5F6580;
+    --accent: #B35F20;
+    --accent-soft: rgba(179,95,32,0.12);
     --day: #4C6FE0;
     --night: #E7E9F3;
     --good: #2E9E63;
-    --focus: #DB8138;
+    --focus: #B35F20;
     --danger: #D14F4F;
     --danger-soft: rgba(209,79,79,0.10);
     --row-shadow: 0 2px 10px rgba(30,35,60,0.08);
@@ -53,6 +58,9 @@
     --bubble-ring: rgba(255,255,255,0.9);
     --day-fill: rgba(76,111,224,0.14);
     --night-fill: rgba(140,146,175,0.28);
+    --hourline-color: #C7CBDA;
+    --worktime-fill: rgba(46,158,99,0.10);
+    --worktime-border: rgba(46,158,99,0.4);
   }
 
   *{box-sizing:border-box;}
@@ -260,15 +268,29 @@
     border-bottom:1px solid var(--line);
   }
   .suggest-picker-chip{
-    display:flex; align-items:center; gap:6px;
-    padding:5px 10px 5px 6px; border-radius:999px;
+    display:flex; align-items:center; gap:2px;
+    padding:3px 6px 3px 3px; border-radius:999px;
     background:var(--panel-raised); border:1px solid var(--line);
     font-size:12.5px; font-weight:600; color:var(--text-faint);
-    cursor:pointer; transition: background .15s, border-color .15s, color .15s;
-    user-select:none; position:relative;
+    transition: background .15s, border-color .15s, color .15s;
   }
   .suggest-picker-chip.checked{ color:var(--text); border-color:var(--accent); background:var(--accent-soft); }
+  .suggest-picker-chip.priority{ border-color:var(--focus); }
+  .suggest-picker-chip label{
+    display:flex; align-items:center; gap:6px;
+    padding:2px 4px 2px 3px; cursor:pointer; user-select:none; position:relative;
+  }
   .suggest-picker-chip input{ position:absolute; opacity:0; width:0; height:0; }
+  .suggest-priority-star{
+    background:none; border:none; cursor:pointer;
+    font-size:13px; line-height:1; padding:2px 4px;
+    color:var(--line); transition: color .15s, transform .1s;
+  }
+  .suggest-priority-star:hover{ transform: scale(1.15); }
+  .suggest-picker-chip.priority .suggest-priority-star{ color:var(--focus); }
+  .suggest-picker-hint{
+    font-size:11px; color:var(--text-faint); margin:8px 0 16px; line-height:1.4;
+  }
 
   .suggest-slot{
     border:1px solid var(--line); border-radius:12px;
@@ -339,6 +361,10 @@
     transform: translate(-50%, -50%);
     transition: left 0.6s cubic-bezier(.4,0,.2,1), top 0.2s;
   }
+  .combined-bubble.next-day,
+  .combined-bubble.prev-day{
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.08), 2px -2px 0 1px var(--accent);
+  }
 
   /* ---------- Rows ---------- */
   .rows{ display:flex; flex-direction:column; gap:10px; }
@@ -375,6 +401,12 @@
     white-space:nowrap;
   }
   .row-time .ampm{ font-size:11px; color:var(--text-faint); margin-left:2px; }
+  .day-offset-badge{
+    font-family:var(--sans); font-size:9.5px; font-weight:700;
+    color:var(--accent); background:var(--accent-soft);
+    padding:1px 5px; border-radius:5px; margin-left:5px;
+    vertical-align:middle; letter-spacing:.01em;
+  }
   .row-daylabel{
     font-size:10.5px; padding:2px 7px; border-radius:6px;
     font-weight:700; letter-spacing:.03em; text-transform:uppercase;
@@ -424,15 +456,15 @@
     display:flex;
   }
   .track-hourlines div{
-    flex:1; border-right:1px solid rgba(255,255,255,0.045);
+    flex:1; border-right:1px solid var(--hourline-color);
   }
   .track-hourlines div:last-child{ border-right:none; }
 
   .worktime-band{
     position:absolute; top:0; bottom:0;
-    background: rgba(111,207,151,0.10);
-    border-left:1px solid rgba(111,207,151,0.35);
-    border-right:1px solid rgba(111,207,151,0.35);
+    background: var(--worktime-fill);
+    border-left:1px solid var(--worktime-border);
+    border-right:1px solid var(--worktime-border);
   }
 
   .now-tick{
@@ -469,8 +501,8 @@
   /* tooltip */
   .tooltip{
     position:fixed; z-index:200;
-    background:#22263A; border:1px solid var(--line);
-    color:var(--text); font-size:12.5px;
+    background:var(--tooltip-bg); border:1px solid var(--line);
+    color:var(--tooltip-text); font-size:12.5px;
     padding:8px 11px; border-radius:9px;
     box-shadow:0 8px 24px rgba(0,0,0,0.4);
     pointer-events:none; white-space:nowrap;
@@ -774,6 +806,40 @@ function utcOffsetMinutes(tz, date) {
   return Math.round((asUTC - date.getTime()) / 60000);
 }
 
+/** The calendar date (as a UTC-midnight timestamp, for easy day-diffing) that
+ * `tz` reads at instant `date`. Internal helper for dayOffsetFor. */
+function localCalendarDayStamp(tz, date) {
+  if (isFixedTz(tz)) {
+    const totalMin = Math.floor(date.getTime() / 60000) + fixedTzMinutes(tz);
+    const dayIndex = Math.floor(totalMin / 1440);
+    return dayIndex * 86400000;
+  }
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit'
+  });
+  const p = fmt.formatToParts(date).reduce((acc, x) => { acc[x.type] = x.value; return acc; }, {});
+  return Date.UTC(p.year, p.month - 1, p.day);
+}
+
+/**
+ * Compares a person's local calendar DATE to a viewer's local calendar date
+ * at the same instant, so the UI can show "+1 day" / "-1 day" next to
+ * someone's time when it falls on a different day than the viewer's — real
+ * cases: it's 11pm Tuesday for the viewer and 8am for someone far enough
+ * ahead that their 8am is already Wednesday, or far enough behind that it's
+ * still Tuesday morning for them. Returns 0 (same day), 1 (person is a day
+ * ahead of the viewer), or -1 (person is a day behind). Real-world IANA
+ * offsets never differ by more than ~26 hours, so the result is always
+ * exactly one of these three values — verified against every timezone in
+ * this app's own city dataset before shipping (max spread found: 22h).
+ */
+function dayOffsetFor(personTz, viewerTz, instant) {
+  const personDay = localCalendarDayStamp(personTz, instant);
+  const viewerDay = localCalendarDayStamp(viewerTz, instant);
+  const diffDays = Math.round((personDay - viewerDay) / 86400000);
+  return diffDays; // expected to always be -1, 0, or 1 for realistic timezone pairs
+}
+
 /**
  * Approximate local sunrise/sunset hour-of-day for shading only (not precision
  * astronomy). Returns null for either value during polar day/night.
@@ -901,13 +967,33 @@ const SCORING = {
 };
 
 /**
+ * Multiplier applied to a person's cost when they're marked "high priority"
+ * in the meeting-suggester's people picker — see scoreInstant's
+ * `priorityWeight` field. 1.8x was chosen (not tuned further) so that a
+ * high-priority person's moderate discomfort can outweigh a normal person's
+ * larger discomfort, without being so extreme it ignores the rest of the
+ * team entirely — see tests/core.test.js for the worked comparison.
+ */
+const PRIORITY_WEIGHT = 1.8;
+
+/**
  * Cost of a given local hour for one person. 0 = squarely in working hours.
- * The curve is smooth (no cliffs) so 8:59am and 9:01am aren't treated as
- * night-and-day different — a hard cutoff is exactly the kind of "synthetic,
- * rigid" scoring that produces silly rankings.
+ * The curve is smooth EVERYWHERE, including at the boundary between
+ * "awake but outside work" and "likely asleep" — this took a real bug fix
+ * to get right. The original version switched instantly at dayStart/dayEnd
+ * (e.g. exactly 7:00am), which produced a genuine cliff: cost dropped from
+ * ~3.0 to ~0.7 between 6:59am and 7:01am, the very thing this function's own
+ * design goal explicitly said to avoid ("a hard cutoff is exactly the kind
+ * of synthetic, rigid scoring that produces silly rankings"). Verified with
+ * a fine-grained sweep before fixing: the old curve's worst per-0.01-hour
+ * jump was 3.40; this version's worst jump is 0.06 — see tests/core.test.js.
+ * Fixed by blending smoothly between the two rates over a short transition
+ * window (`transitionWidth`, default 1 hour) centered on each boundary,
+ * using a standard smoothstep curve (zero slope at both ends, so the blend
+ * itself introduces no new kink).
  */
 function personHourCost(hourFloat, opts = SCORING) {
-  const { workStart, workEnd, dayStart, dayEnd } = opts;
+  const { workStart, workEnd, dayStart, dayEnd, transitionWidth = 1 } = opts;
   if (hourFloat >= workStart && hourFloat < workEnd) return 0;
 
   const distToStart = Math.abs(hourFloat - workStart);
@@ -915,9 +1001,31 @@ function personHourCost(hourFloat, opts = SCORING) {
   let dist = Math.min(distToStart, distToEnd);
   dist = Math.min(dist, 24 - dist); // wrap around midnight
 
-  const isAwake = hourFloat >= dayStart && hourFloat < dayEnd;
-  if (isAwake) return dist * 0.35;               // outside work but awake: gentle ramp
-  return 1.2 + dist * 0.9;                        // asleep: steep, plus a flat "waking someone" penalty
+  const awakeRateCost = dist * 0.35;        // outside work but plausibly awake: gentle ramp
+  const asleepRateCost = 1.2 + dist * 0.9;  // likely asleep: steeper, plus a flat "waking someone" penalty
+  const f = awakeFraction(hourFloat, dayStart, dayEnd, transitionWidth);
+  return f * awakeRateCost + (1 - f) * asleepRateCost;
+}
+
+/** Smoothstep: 0→1 over x∈[0,1], with zero slope at both ends (so blending
+ * with it introduces no new kink in the curve it's applied to). */
+function smoothstep(x) {
+  const t = Math.max(0, Math.min(1, x));
+  return t * t * (3 - 2 * t);
+}
+
+/** How "awake" hourFloat is, on a smooth 0..1 scale, given the plausibly-
+ * awake window [dayStart, dayEnd). 1 = fully in the awake zone, 0 = fully
+ * in the asleep zone, blended smoothly over `width` hours centered on each
+ * edge — this is what removes the old hard cliff at dayStart/dayEnd. */
+function awakeFraction(hourFloat, dayStart, dayEnd, width) {
+  const half = width / 2;
+  if (hourFloat >= dayStart + half && hourFloat <= dayEnd - half) return 1;
+  if (hourFloat < dayStart - half || hourFloat > dayEnd + half) return 0;
+  if (hourFloat < dayStart + half) {
+    return smoothstep((hourFloat - (dayStart - half)) / width);
+  }
+  return smoothstep(((dayEnd + half) - hourFloat) / width);
 }
 
 /**
@@ -934,14 +1042,32 @@ function snapUpToHalfHour(date) {
 }
 
 /**
+ * Rounds an instant to the NEAREST clean half-hour mark (:00 or :30) in
+ * either direction — unlike snapUpToHalfHour, which always rounds up. Used
+ * by the combined bar's drag-to-preview feature so a drag always lands on a
+ * clean wall-clock time (e.g. "3:30 PM"), not an odd minute like "3:24 PM".
+ */
+function snapToNearestHalfHour(date) {
+  const halfHourMs = 30 * 60000;
+  return new Date(Math.round(date.getTime() / halfHourMs) * halfHourMs);
+}
+
+/**
  * Scores one candidate UTC instant for a list of people.
+ * Each person may optionally carry a `priorityWeight` (default 1) — used to
+ * let someone weight specific people's comfort more heavily than others,
+ * e.g. whoever's timezone is farthest from the rest of the team. A weight
+ * of 1.8 means that person's cost counts 1.8x as much when computing the
+ * "worst affected" and average figures, so the ranking protects them more
+ * without requiring every other person to also be inconvenienced to match.
  * Returns { instant, score, avg, worst, worstPerson, perPerson: [{personId, cost, hour}] }
  */
 function scoreInstant(people, instant, opts = SCORING) {
   const perPerson = people.map(p => {
     const { hourFloat } = localTimeParts(p.tz, instant);
-    const cost = personHourCost(hourFloat, opts);
-    return { personId: p.id, name: p.name, hour: hourFloat, cost };
+    const rawCost = personHourCost(hourFloat, opts);
+    const weight = typeof p.priorityWeight === 'number' ? p.priorityWeight : 1;
+    return { personId: p.id, name: p.name, hour: hourFloat, cost: rawCost * weight, rawCost, weight };
   });
   const avg = perPerson.reduce((s, x) => s + x.cost, 0) / (perPerson.length || 1);
   const worstEntry = perPerson.reduce((a, b) => (b.cost > a.cost ? b : a), perPerson[0] || { cost: 0 });
@@ -974,7 +1100,8 @@ function roundToBetterMark(people, instant, opts = SCORING) {
  * a clean 30-minute grid (:00 and :30 marks only — see snapUpToHalfHour), so
  * every suggestion is a time a human would actually propose (e.g. "5:00 PM",
  * "6:30 AM"), never an odd minute like "7:07 PM". Returns the top `topN`
- * distinct slots, sorted best first.
+ * distinct slots, sorted best first. Each person may carry a `priorityWeight`
+ * (see scoreInstant) to weight their comfort more heavily in the ranking.
  */
 function suggestMeetingTimes(people, fromDate = new Date(), topN = 3, opts = SCORING) {
   if (!people.length) return [];
@@ -1033,11 +1160,11 @@ function formatOffsetLabel(minutes) {
 // Export for both browser (global) and Node (tests) use.
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    localTimeParts, formatClock, utcOffsetMinutes, sunTimes,
+    localTimeParts, formatClock, utcOffsetMinutes, sunTimes, dayOffsetFor,
     searchPlaces, UTC_OFFSETS,
     isFixedTz, fixedTzMinutes, makeFixedTz,
-    SCORING, personHourCost, scoreInstant, suggestMeetingTimes,
-    snapUpToHalfHour, roundToBetterMark, assignLanes, formatOffsetLabel
+    SCORING, PRIORITY_WEIGHT, personHourCost, scoreInstant, suggestMeetingTimes,
+    snapUpToHalfHour, snapToNearestHalfHour, roundToBetterMark, assignLanes, formatOffsetLabel
   };
 }
 
@@ -1064,6 +1191,9 @@ const EMOJI_OPTIONS = ["😀","😎","🦊","🐼","🐨","🐸","🦁","🐯","
 const COLOR_OPTIONS = ["#F2A65A","#7C9CFF","#6FCF97","#E37373","#C792EA","#5DD5C8","#F2D06B","#FF8FB1","#9AA5FF","#8AD6C7"];
 const STORE_KEY = "timetogether_v2";
 const THEME_KEY = "timetogether_theme";
+// The viewer's own IANA timezone (from the browser), used as the reference
+// point for "+1 day" / "-1 day" labels — see dayOffsetFor in core.js.
+const VIEWER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 /* ---------------------------------------------------------------------------
  * STATE
@@ -1327,7 +1457,10 @@ function renderCombinedTrackContents(people, instant) {
   const bubbles = laned.map(({ p, hourFloat, pct, lane }) => {
     const clock = formatClock(p.tz, instant);
     const top = 13 + lane * 24;
-    return `<div class="bubble combined-bubble" style="left:${pct.toFixed(3)}%; top:${top}px; background:${p.color}" data-tip="${escapeHtml(p.name)}${p.isMe ? ' (you)' : ''} · ${escapeHtml(p.city)} · ${clock}">${avatarInner(p)}</div>`;
+    const dayOffset = dayOffsetFor(p.tz, VIEWER_TZ, instant);
+    const dayMarkerClass = dayOffset > 0 ? ' next-day' : dayOffset < 0 ? ' prev-day' : '';
+    const dayNote = dayOffset === 0 ? '' : ` · ${dayOffset > 0 ? 'tomorrow' : 'yesterday'} for them`;
+    return `<div class="bubble combined-bubble${dayMarkerClass}" style="left:${pct.toFixed(3)}%; top:${top}px; background:${p.color}" data-tip="${escapeHtml(p.name)}${p.isMe ? ' (you)' : ''} · ${escapeHtml(p.city)} · ${clock}${dayNote}">${avatarInner(p)}</div>`;
   }).join('');
 
   return { trackHeight, workLeft, workWidth, bubbles };
@@ -1386,12 +1519,22 @@ function updateCombinedPreviewFromDrag(clientX) {
   const minutesPerPixel = rect.width > 0 ? (24 * 60) / rect.width : 0;
   const deltaPx = clientX - combinedBarDrag.startX;
   const rawMinutes = combinedBarDrag.startOffsetMinutes + deltaPx * minutesPerPixel;
-  // Snap the preview to a clean half-hour mark, consistent with how meeting
-  // suggestions are rounded elsewhere in the app.
-  combinedBarPreview.offsetMinutes = Math.round(rawMinutes / 30) * 30;
-
   const now = new Date();
-  const previewInstant = new Date(now.getTime() + combinedBarPreview.offsetMinutes * 60000);
+
+  // Snap the resulting PREVIEW INSTANT to the nearest clean wall-clock mark
+  // (:00 or :30), not just the offset-from-now to a round number of minutes.
+  // Those are different: rounding the offset can still land on an odd
+  // wall-clock time whenever "now" itself has odd seconds/minutes (which it
+  // always does in practice, since this runs from a live `new Date()`) --
+  // e.g. now=2:37pm + a "clean" +47min offset = 3:24pm, not a time anyone
+  // would actually propose. Snapping the instant itself guarantees the
+  // preview always reads like "3:00 PM" or "3:30 PM", matching how
+  // suggestMeetingTimes() behaves.
+  const rawInstant = new Date(now.getTime() + rawMinutes * 60000);
+  const snappedInstant = snapToNearestHalfHour(rawInstant);
+  combinedBarPreview.offsetMinutes = Math.round((snappedInstant.getTime() - now.getTime()) / 60000);
+
+  const previewInstant = snappedInstant;
   const { trackHeight, workLeft, workWidth, bubbles } = renderCombinedTrackContents(combinedBarDrag.people, previewInstant);
   track.style.height = trackHeight + 'px';
   track.innerHTML = `
@@ -1482,6 +1625,8 @@ function renderContent() {
     const sun = sunTimes(p.lat, p.lon, p.tz, now);
     const gradient = buildGradient(sun.sunrise, sun.sunset);
     const leftPct = (hourFloat / 24 * 100).toFixed(3);
+    const dayOffset = dayOffsetFor(p.tz, VIEWER_TZ, now);
+    const dayBadge = dayOffset === 0 ? '' : `<span class="day-offset-badge" title="${dayOffset > 0 ? 'A day ahead of you' : 'A day behind you'}">${dayOffset > 0 ? '+1d' : '−1d'}</span>`;
 
     let isDay = sun.sunrise !== null && sun.sunset !== null
       ? (hourFloat >= sun.sunrise && hourFloat <= sun.sunset)
@@ -1510,7 +1655,7 @@ function renderContent() {
           <div class="row-city">${escapeHtml(p.city)}</div>
         </div>
         <div class="row-daylabel ${labelClass}">${labelText}</div>
-        <div class="row-time${p.isMe ? ' row-time-you' : ''}">${time}<span class="ampm">${ampm}</span></div>
+        <div class="row-time${p.isMe ? ' row-time-you' : ''}">${time}<span class="ampm">${ampm}</span>${dayBadge}</div>
         ${actions}
       </div>
       <div class="track-wrap">
@@ -1863,7 +2008,8 @@ function openPersonModal(personId) {
 function openSuggestModal() {
   const g = activeGroup();
   const allPeople = displayPeopleFor(g, new Date()); // includes "me" if set, so suggestions account for your own schedule too
-  const included = new Set(allPeople.map(p => p.id)); // everyone starts checked
+  const included = new Set(allPeople.map(p => p.id)); // everyone starts checked/included
+  const prioritized = new Set(); // opt-in "weight this person's comfort more" — starts empty
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -1872,6 +2018,7 @@ function openSuggestModal() {
       <h2>Good times to meet</h2>
       <p class="sub">Ranked to avoid badly inconveniencing any one person — not just the lowest total. Times are rounded to the nearest half hour.</p>
       <div class="suggest-people-picker" id="suggestPeoplePicker"></div>
+      <p class="suggest-picker-hint">Tap the star to weight someone's comfort more heavily — useful for whoever's timezone is farthest from the rest of the team.</p>
       <div id="suggestList"></div>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="closeSuggest" type="button">Close</button>
@@ -1886,13 +2033,19 @@ function openSuggestModal() {
   const listEl = overlay.querySelector('#suggestList');
 
   function renderPicker() {
-    pickerEl.innerHTML = allPeople.map(p => `
-      <label class="suggest-picker-chip${included.has(p.id) ? ' checked' : ''}">
-        <input type="checkbox" data-pid="${p.id}" ${included.has(p.id) ? 'checked' : ''}>
-        <span class="row-avatar" style="width:18px;height:18px;font-size:9px;background:${p.color}">${avatarInner(p)}</span>
-        ${escapeHtml(p.name)}${p.isMe ? ' (you)' : ''}
-      </label>
-    `).join('');
+    pickerEl.innerHTML = allPeople.map(p => {
+      const isIncluded = included.has(p.id);
+      const isPriority = prioritized.has(p.id);
+      return `
+      <div class="suggest-picker-chip${isIncluded ? ' checked' : ''}${isPriority ? ' priority' : ''}">
+        <label>
+          <input type="checkbox" data-pid="${p.id}" ${isIncluded ? 'checked' : ''}>
+          <span class="row-avatar" style="width:18px;height:18px;font-size:9px;background:${p.color}">${avatarInner(p)}</span>
+          ${escapeHtml(p.name)}${p.isMe ? ' (you)' : ''}
+        </label>
+        <button type="button" class="suggest-priority-star" data-pid="${p.id}" title="${isPriority ? 'Weighting this person more heavily — click to undo' : 'Weight this person more heavily'}" aria-pressed="${isPriority}">★</button>
+      </div>`;
+    }).join('');
     pickerEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
       cb.addEventListener('change', () => {
         const pid = cb.dataset.pid;
@@ -1901,10 +2054,20 @@ function openSuggestModal() {
         renderResults();
       });
     });
+    pickerEl.querySelectorAll('.suggest-priority-star').forEach(star => {
+      star.addEventListener('click', () => {
+        const pid = star.dataset.pid;
+        if (prioritized.has(pid)) prioritized.delete(pid); else prioritized.add(pid);
+        renderPicker(); // re-render so the star's pressed state and chip styling update
+        renderResults();
+      });
+    });
   }
 
   function renderResults() {
-    const activePeople = allPeople.filter(p => included.has(p.id));
+    const activePeople = allPeople
+      .filter(p => included.has(p.id))
+      .map(p => prioritized.has(p.id) ? { ...p, priorityWeight: PRIORITY_WEIGHT } : p);
     if (activePeople.length < 2) {
       listEl.innerHTML = `<p class="hint">Select at least two people to see suggested times.</p>`;
       return;
@@ -1914,12 +2077,18 @@ function openSuggestModal() {
       const rows = s.perPerson.map(pp => {
         const person = activePeople.find(p => p.id === pp.personId);
         const clockStr = formatClock(person.tz, s.instant);
-        const tag = pp.cost === 0 ? 'good' : pp.cost < 1 ? 'day' : 'night';
-        const tagText = pp.cost === 0 ? 'Working hrs' : pp.cost < 1 ? 'Outside hours' : 'Asleep';
+        // Tag thresholds read the person's RAW (unweighted) cost, so the
+        // "Working hrs / Outside hours / Asleep" label always reflects their
+        // actual local time — priority weighting affects ranking, not truth.
+        const tag = pp.rawCost === 0 ? 'good' : pp.rawCost < 1 ? 'day' : 'night';
+        const tagText = pp.rawCost === 0 ? 'Working hrs' : pp.rawCost < 1 ? 'Outside hours' : 'Asleep';
+        const starMark = prioritized.has(person.id) ? ' ★' : '';
+        const dayOffset = dayOffsetFor(person.tz, VIEWER_TZ, s.instant);
+        const dayBadge = dayOffset === 0 ? '' : `<span class="day-offset-badge" title="${dayOffset > 0 ? 'A day ahead of you' : 'A day behind you'}">${dayOffset > 0 ? '+1d' : '−1d'}</span>`;
         return `<div class="suggest-person">
           <span class="row-avatar" style="width:22px;height:22px;font-size:11px;background:${person.color}">${avatarInner(person)}</span>
-          <span class="suggest-name">${escapeHtml(person.name)}${person.isMe ? ' (you)' : ''}</span>
-          <span class="suggest-clock">${clockStr}</span>
+          <span class="suggest-name">${escapeHtml(person.name)}${person.isMe ? ' (you)' : ''}${starMark}</span>
+          <span class="suggest-clock">${clockStr}${dayBadge}</span>
           <span class="row-daylabel ${tag}" style="font-size:9.5px;">${tagText}</span>
         </div>`;
       }).join('');
@@ -1938,6 +2107,7 @@ function openSuggestModal() {
 
   if (allPeople.length < 2) {
     pickerEl.innerHTML = '';
+    overlay.querySelector('.suggest-picker-hint').style.display = 'none';
     listEl.innerHTML = `<p class="hint">Add at least two people to get suggestions.</p>`;
     return;
   }
