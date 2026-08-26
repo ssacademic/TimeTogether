@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TimeTogether — where your team is, right now</title>
+<style>
+
+  :root{
+    --bg: #0B0C13;
+    --panel: #1B1F30;
+    --panel-raised: #242942;
+    --line: #333a56;
+    --text: #F3F4F8;
+    --text-dim: #9BA0B5;
+    --text-faint: #656B85;
+    --accent: #F2A65A;
+    --accent-soft: rgba(242,166,90,0.18);
+    --day: #7C9CFF;
+    --night: #0A0B12;
+    --good: #6FCF97;
+    --focus: #F2A65A;
+    --danger: #E37373;
+    --danger-soft: rgba(227,115,115,0.14);
+    --radius: 14px;
+    --row-shadow: 0 3px 14px rgba(0,0,0,0.35);
+    --topbar-bg: rgba(11,12,19,0.86);
+    --bubble-ring: rgba(11,12,19,0.9);
+    --day-fill: rgba(124,156,255,0.22);
+    --night-fill: rgba(10,11,18,0.9);
+    --mono: 'SFMono-Regular', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  [data-theme="light"]{
+    --bg: #F4F5F9;
+    --panel: #FFFFFF;
+    --panel-raised: #EEF0F7;
+    --line: #DDE1EC;
+    --text: #1B1F2C;
+    --text-dim: #5B6178;
+    --text-faint: #8F95AC;
+    --accent: #DB8138;
+    --accent-soft: rgba(219,129,56,0.14);
+    --day: #4C6FE0;
+    --night: #E7E9F3;
+    --good: #2E9E63;
+    --focus: #DB8138;
+    --danger: #D14F4F;
+    --danger-soft: rgba(209,79,79,0.10);
+    --row-shadow: 0 2px 10px rgba(30,35,60,0.08);
+    --topbar-bg: rgba(255,255,255,0.86);
+    --bubble-ring: rgba(255,255,255,0.9);
+    --day-fill: rgba(76,111,224,0.14);
+    --night-fill: rgba(140,146,175,0.28);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(1200px 800px at 15% -10%, var(--panel-raised) 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    transition: background .2s, color .2s;
+  }
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  :focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position: sticky; top:0; z-index:40;
+    display:flex; align-items:center; gap:16px;
+    padding: 14px 22px;
+    background: var(--topbar-bg);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand{
+    display:flex; align-items:baseline; gap:8px;
+    font-weight:700; font-size:17px; letter-spacing:-0.01em;
+    margin-right: 10px; flex-shrink:0;
+  }
+  .brand .dot{
+    display:inline-block; width:8px; height:8px; border-radius:50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+
+  .tabs-wrap{ position:relative; flex:1; min-width:0; }
+  .tabs{
+    display:flex; align-items:center; gap:6px;
+    overflow-x:auto; scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tabs-fade{
+    position:absolute; top:0; bottom:0; width:28px;
+    pointer-events:none; opacity:0; transition:opacity .15s;
+  }
+  .tabs-fade-left{ left:0; background:linear-gradient(90deg, var(--bg), transparent); }
+  .tabs-fade-right{ right:0; background:linear-gradient(-90deg, var(--bg), transparent); }
+  .tabs-fade.show{ opacity:1; }
+
+  .tab{
+    display:flex; align-items:center; gap:6px;
+    padding:7px 13px;
+    border-radius:999px;
+    background:transparent;
+    border:1px solid transparent;
+    color:var(--text-dim);
+    font-size:13.5px; font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .tab:hover{ color:var(--text); background:var(--panel-raised); }
+  .tab.active{
+    color: var(--bg);
+    background: var(--accent);
+  }
+  .tab .count{
+    font-family:var(--mono); font-size:11px;
+    opacity:.75;
+  }
+  .tab-add{
+    display:flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border-radius:50%;
+    background:var(--panel-raised); color:var(--text-dim);
+    border:1px solid var(--line);
+    cursor:pointer; font-size:16px; flex-shrink:0;
+    transition: background .15s, color .15s;
+  }
+  .tab-add:hover{ background:var(--line); color:var(--text); }
+
+  .topbar-actions{ display:flex; gap:8px; align-items:center; flex-shrink:0; }
+  .icon-btn{
+    display:flex; align-items:center; justify-content:center;
+    width:34px; height:34px; border-radius:10px;
+    background:var(--panel-raised); border:1px solid var(--line);
+    color:var(--text-dim); cursor:pointer; font-size:15px;
+    transition: background .15s,color .15s;
+  }
+  .icon-btn:hover{ background:var(--line); color:var(--text); }
+
+  /* ---------- Settings dropdown ---------- */
+  .settings-menu{ position:relative; }
+  .settings-dropdown{
+    position:absolute; top:calc(100% + 8px); right:0;
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:6px;
+    min-width:190px; box-shadow:0 10px 30px rgba(0,0,0,0.35);
+    display:none; flex-direction:column; gap:2px;
+    z-index:60;
+  }
+  .settings-dropdown.show{ display:flex; }
+  .settings-dropdown button{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 10px; border-radius:8px;
+    background:none; border:none; color:var(--text);
+    font-size:13px; font-weight:600; text-align:left;
+    cursor:pointer; width:100%;
+  }
+  .settings-dropdown button:hover{ background:var(--panel-raised); }
+  .sd-icon{ width:16px; text-align:center; color:var(--text-dim); }
+
+  /* ---------- Main ---------- */
+  .wrap{ max-width:980px; margin:0 auto; padding: 22px 18px 80px; }
+
+  .panel-header{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:14px;
+    margin-bottom:18px; flex-wrap:wrap;
+  }
+  .panel-title-row{ display:flex; align-items:center; gap:10px; }
+  .header-right{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .sort-toggle{
+    display:flex; align-items:center; gap:6px;
+    color:var(--text-dim); font-size:12.5px; font-weight:600;
+    cursor:pointer; padding:5px 10px; border-radius:8px;
+    border:1px solid var(--line); background:var(--panel-raised);
+    transition: color .15s, border-color .15s;
+    user-select:none;
+  }
+  .sort-toggle:hover{ color:var(--text); border-color:var(--accent); }
+  .sort-toggle.active{ color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+  .panel-title{
+    font-size:22px; font-weight:750; letter-spacing:-0.01em;
+    background:transparent; border:none; color:var(--text);
+    padding:2px 4px; border-radius:6px; max-width:60vw;
+  }
+  .panel-title:hover{ background:var(--panel-raised); cursor:text; }
+  .rename-hint{ color:var(--text-faint); font-size:11px; }
+
+  .now-readout{
+    font-family:var(--mono); font-size:13px; color:var(--text-dim);
+    display:flex; align-items:center; gap:8px;
+  }
+  .now-readout .pulse{
+    width:7px;height:7px;border-radius:50%; background:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  .add-person-btn{
+    display:flex; align-items:center; gap:7px;
+    padding:9px 15px; border-radius:10px;
+    background:var(--panel-raised); border:1px solid var(--line);
+    color:var(--text); font-weight:600; font-size:13.5px;
+    cursor:pointer; transition: border-color .15s, background .15s;
+  }
+  .add-person-btn:hover{ border-color:var(--accent); background:var(--panel); }
+
+  .panel-toolbar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .suggest-btn{
+    display:flex; align-items:center; gap:7px;
+    padding:9px 15px; border-radius:10px;
+    background:var(--accent-soft); border:1px solid rgba(242,166,90,0.35);
+    color:var(--accent); font-weight:650; font-size:13.5px;
+    cursor:pointer; transition: background .15s, border-color .15s;
+  }
+  .suggest-btn:hover{ background:rgba(242,166,90,0.25); }
+
+  .link-btn{
+    display:inline-block; margin-top:8px;
+    background:none; border:none; padding:0;
+    color:var(--text-dim); font-size:11.5px; text-decoration:underline;
+    text-decoration-color:var(--line); cursor:pointer;
+  }
+  .link-btn:hover{ color:var(--accent); }
+
+  .no-match{ padding:10px 12px; font-size:12.5px; color:var(--text-faint); }
+
+  /* ---------- Suggest meeting times modal ---------- */
+  .suggest-slot{
+    border:1px solid var(--line); border-radius:12px;
+    padding:12px 14px; margin-bottom:10px; background:var(--panel-raised);
+  }
+  .suggest-slot-head{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .suggest-rank{
+    font-family:var(--mono); font-size:11px; font-weight:700;
+    color:var(--accent); background:var(--accent-soft);
+    padding:2px 7px; border-radius:6px;
+  }
+  .suggest-when{ font-weight:650; font-size:14px; }
+  .suggest-why{ color:var(--text-faint); font-size:12px; margin-bottom:10px; }
+  .suggest-why strong{ color:var(--text-dim); }
+  .suggest-people{ display:flex; flex-direction:column; gap:6px; }
+  .suggest-person{ display:flex; align-items:center; gap:8px; font-size:12.5px; }
+  .suggest-name{ font-weight:600; min-width:70px; }
+  .suggest-clock{ font-family:var(--mono); color:var(--text-dim); margin-left:auto; }
+
+  /* ---------- Empty state ---------- */
+  .empty-state{
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    padding: 70px 20px; color:var(--text-dim);
+    border:1px dashed var(--line); border-radius:var(--radius);
+  }
+  .empty-state .glyph{ font-size:34px; margin-bottom:14px; opacity:.9; }
+  .empty-state h3{ color:var(--text); margin:0 0 6px; font-size:17px; }
+  .empty-state p{ margin:0 0 20px; max-width:360px; font-size:14px; line-height:1.5; }
+
+  /* ---------- Rows ---------- */
+  .rows{ display:flex; flex-direction:column; gap:10px; }
+
+  .person-row{
+    background: var(--panel);
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px 16px;
+    position:relative;
+    box-shadow: var(--row-shadow);
+  }
+
+  .row-top{
+    display:flex; align-items:center; gap:10px; margin-bottom:10px;
+  }
+  .row-avatar{
+    width:30px; height:30px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:700; color:var(--bg);
+    flex-shrink:0; overflow:hidden;
+    border: 2px solid rgba(255,255,255,0.12);
+  }
+  .row-avatar img{ width:100%; height:100%; object-fit:cover; }
+
+  .row-name{ font-weight:650; font-size:14.5px; }
+  .row-city{ color:var(--text-faint); font-size:12px; }
+  .row-meta{ display:flex; flex-direction:column; gap:1px; margin-right:auto; min-width:0; }
+  .row-meta .row-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  .row-time{
+    font-family:var(--mono); font-size:15px; font-weight:600;
+    color:var(--text);
+    white-space:nowrap;
+  }
+  .row-time .ampm{ font-size:11px; color:var(--text-faint); margin-left:2px; }
+  .row-daylabel{
+    font-size:10.5px; padding:2px 7px; border-radius:6px;
+    font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .row-daylabel.day{ background:rgba(124,156,255,0.18); color:#AFC1FF; }
+  .row-daylabel.night{ background:rgba(255,255,255,0.06); color:var(--text-faint); }
+  .row-daylabel.good{ background:rgba(111,207,151,0.16); color:var(--good); }
+
+  .row-actions{ display:flex; gap:4px; margin-left:4px; }
+  .row-actions button{
+    width:26px;height:26px; border-radius:7px; border:none; background:transparent;
+    color:var(--text-faint); cursor:pointer; font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+    transition: background .15s, color .15s;
+  }
+  .row-actions button:hover{ background:var(--panel-raised); color:var(--text); }
+  .row-actions .delBtn:hover{ background:var(--danger-soft); color:var(--danger); }
+
+  .person-row.is-you{ border-color:var(--accent); }
+  .you-badge{
+    font-size:9.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--accent); background:var(--accent-soft);
+    padding:2px 6px; border-radius:5px; margin-left:2px;
+  }
+  .row-avatar-you{
+    width:36px; height:36px; font-size:16px;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .row-time-you{ font-size:19px; font-weight:750; color:var(--accent); }
+
+  /* the 24h track */
+  .track-wrap{ position:relative; }
+  .track{
+    position:relative;
+    height:34px;
+    border-radius:9px;
+    overflow:hidden;
+    background: var(--night);
+  }
+  .track-gradient{
+    position:absolute; inset:0;
+    /* built per-row via inline background */
+  }
+  .track-hourlines{
+    position:absolute; inset:0;
+    display:flex;
+  }
+  .track-hourlines div{
+    flex:1; border-right:1px solid rgba(255,255,255,0.045);
+  }
+  .track-hourlines div:last-child{ border-right:none; }
+
+  .worktime-band{
+    position:absolute; top:0; bottom:0;
+    background: rgba(111,207,151,0.10);
+    border-left:1px solid rgba(111,207,151,0.35);
+    border-right:1px solid rgba(111,207,151,0.35);
+  }
+
+  .now-tick{
+    position:absolute; top:-4px; bottom:-4px;
+    width:2px; background: var(--accent);
+    box-shadow: 0 0 8px 1px rgba(242,166,90,0.6);
+    border-radius:2px;
+  }
+
+  .bubble{
+    position:absolute; top:50%;
+    width:26px; height:26px; border-radius:50%;
+    transform: translate(-50%, -50%);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; color:var(--bg);
+    border:2px solid var(--bubble-ring);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.08);
+    cursor:pointer;
+    transition: left 0.6s cubic-bezier(.4,0,.2,1);
+    overflow:hidden;
+  }
+  .bubble img{ width:100%; height:100%; object-fit:cover; }
+
+  .hourscale{
+    display:flex; margin-top:6px;
+    font-family:var(--mono); font-size:9px; color:var(--text-faint);
+  }
+  .hourscale span{ flex:1; text-align:left; white-space:nowrap; }
+  .hourscale span:nth-child(odd){ opacity:0; }
+  @media (max-width:600px){
+    .hourscale span:not(:nth-child(6n+1)){ opacity:0 !important; }
+  }
+
+  /* tooltip */
+  .tooltip{
+    position:fixed; z-index:200;
+    background:#22263A; border:1px solid var(--line);
+    color:var(--text); font-size:12.5px;
+    padding:8px 11px; border-radius:9px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    pointer-events:none; white-space:nowrap;
+    transform:translate(-50%,-130%);
+    opacity:0; transition:opacity .1s;
+  }
+  .tooltip.show{ opacity:1; }
+  .tooltip strong{ font-weight:700; }
+  .tooltip .tt-city{ color:var(--text-dim); }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(8,9,14,0.6);
+    backdrop-filter: blur(3px);
+    display:flex; align-items:center; justify-content:center;
+    z-index:100; padding:20px;
+  }
+  .modal{
+    background: var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    width:100%; max-width:420px;
+    padding:22px;
+    max-height:88vh; overflow-y:auto;
+  }
+  .modal h2{ margin:0 0 4px; font-size:17px; }
+  .modal .sub{ color:var(--text-faint); font-size:12.5px; margin:0 0 18px; }
+
+  .field{ margin-bottom:15px; }
+  .field label{ display:block; font-size:12px; font-weight:650; color:var(--text-dim); margin-bottom:6px; }
+  .field input[type=text], .field select{
+    width:100%; padding:10px 12px; border-radius:9px;
+    background:var(--panel-raised); border:1px solid var(--line);
+    color:var(--text); font-size:14px; font-family:inherit;
+  }
+  .field input:focus, .field select:focus{ border-color:var(--accent); }
+  .field .hint{ font-size:11px; color:var(--text-faint); margin-top:5px; }
+
+  .avatar-mode-tabs{ display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .avatar-mode-tabs button{
+    padding:6px 11px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel-raised); color:var(--text-dim);
+    font-size:12px; font-weight:600; cursor:pointer;
+  }
+  .avatar-mode-tabs button.active{ background:var(--accent); color:var(--bg); border-color:var(--accent); }
+
+  .emoji-grid{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .emoji-grid button{
+    width:34px; height:34px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel-raised); font-size:16px; cursor:pointer;
+  }
+  .emoji-grid button.sel{ border-color:var(--accent); background:var(--accent-soft); }
+
+  .color-grid{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .color-swatch{
+    width:26px; height:26px; border-radius:50%; cursor:pointer;
+    border:2px solid transparent;
+  }
+  .color-swatch.sel{ border-color:var(--text); }
+
+  .avatar-preview{
+    width:44px;height:44px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800; font-size:17px; color:var(--bg);
+    margin: 0 auto 14px; overflow:hidden;
+    border:2px solid rgba(255,255,255,0.12);
+  }
+  .avatar-preview img{ width:100%; height:100%; object-fit:cover; }
+
+  .modal-actions{ display:flex; gap:10px; margin-top:20px; }
+  .btn{
+    flex:1; padding:11px; border-radius:10px; border:none;
+    font-weight:700; font-size:13.5px; cursor:pointer;
+    transition:opacity .15s, background .15s;
+  }
+  .btn-primary{ background:var(--accent); color:var(--bg); }
+  .btn-primary:hover{ opacity:.92; }
+  .btn-secondary{ background:var(--panel-raised); color:var(--text-dim); border:1px solid var(--line); }
+  .btn-secondary:hover{ color:var(--text); }
+  .btn-danger{ background:transparent; color:var(--danger); border:1px solid var(--danger); opacity:.75; }
+  .btn-danger:hover{ background:var(--danger-soft); opacity:1; }
+
+  .city-suggestions{
+    max-height:170px; overflow-y:auto; margin-top:6px;
+    border:1px solid var(--line); border-radius:9px; display:none;
+    background:var(--panel-raised);
+  }
+  .city-suggestions.show{ display:block; }
+  .city-suggestions div{
+    padding:8px 12px; font-size:13px; cursor:pointer;
+    display:flex; justify-content:space-between; gap:8px;
+  }
+  .city-suggestions div:hover{ background:var(--line); }
+  .city-suggestions .csub{ color:var(--text-faint); font-size:11px; }
+
+  footer{
+    text-align:center; color:var(--text-faint); font-size:11.5px;
+    padding: 10px 20px 30px;
+  }
+  footer a{ color:var(--text-dim); text-decoration:underline; text-decoration-color:var(--line); }
+
+  /* ---------- Onboarding ---------- */
+  .onboarding-overlay{
+    position:fixed; inset:0; z-index:150;
+    background: radial-gradient(1200px 800px at 15% -10%, var(--panel-raised) 0%, var(--bg) 60%);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .onboarding-card{
+    max-width:420px; width:100%; text-align:center;
+  }
+  .onboarding-card .glyph{ font-size:38px; margin-bottom:14px; }
+  .onboarding-card h1{ font-size:24px; margin:0 0 8px; letter-spacing:-0.01em; }
+  .onboarding-card p.sub{ color:var(--text-dim); font-size:14px; margin:0 0 26px; line-height:1.5; }
+  .onboarding-card .field{ text-align:left; }
+  .onboarding-card .modal-actions{ margin-top:22px; }
+  .onboarding-skip{
+    display:block; margin:14px auto 0; background:none; border:none;
+    color:var(--text-faint); font-size:12.5px; text-decoration:underline;
+    text-decoration-color:var(--line); cursor:pointer;
+  }
+  .onboarding-skip:hover{ color:var(--text-dim); }
+
+  /* ---------- Guided tour ---------- */
+  .tour-overlay{
+    position:fixed; inset:0; z-index:160;
+    background:rgba(5,6,10,0.72);
+    backdrop-filter: blur(2px);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .tour-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px;
+    max-width:440px; width:100%; padding:26px; box-shadow:0 20px 60px rgba(0,0,0,0.45);
+  }
+  .tour-step-glyph{
+    width:52px; height:52px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px; background:var(--accent-soft); margin-bottom:16px;
+  }
+  .tour-card h2{ font-size:19px; margin:0 0 8px; letter-spacing:-0.01em; }
+  .tour-card p{ color:var(--text-dim); font-size:13.5px; line-height:1.55; margin:0; }
+  .tour-dots{ display:flex; gap:6px; margin-top:20px; }
+  .tour-dot{ width:6px; height:6px; border-radius:50%; background:var(--line); transition:background .15s, width .15s; }
+  .tour-dot.active{ background:var(--accent); width:18px; border-radius:3px; }
+  .tour-actions{ display:flex; align-items:center; justify-content:space-between; margin-top:22px; gap:10px; }
+  .tour-skip{
+    background:none; border:none; color:var(--text-faint); font-size:12.5px;
+    text-decoration:underline; text-decoration-color:var(--line); cursor:pointer;
+  }
+  .tour-skip:hover{ color:var(--text-dim); }
+  .tour-next-group{ display:flex; gap:8px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .bubble{ transition:none; }
+    .pulse{ animation:none; }
+  }
+
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>TimeTogether</div>
+  <div class="tabs-wrap">
+    <div class="tabs" id="tabs"></div>
+    <div class="tabs-fade tabs-fade-left" id="tabsFadeLeft" aria-hidden="true"></div>
+    <div class="tabs-fade tabs-fade-right" id="tabsFadeRight" aria-hidden="true"></div>
+  </div>
+  <div class="tab-add" id="addGroupBtn" title="New group" role="button" tabindex="0">+</div>
+  <div class="topbar-actions">
+    <button class="icon-btn" id="helpBtn" title="How this works">?</button>
+    <div class="settings-menu" id="settingsMenu">
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-haspopup="true" aria-expanded="false">⚙</button>
+      <div class="settings-dropdown" id="settingsDropdown">
+        <button id="themeToggleBtn" type="button"><span class="sd-icon">☀</span>Light mode</button>
+        <button id="exportBtn" type="button"><span class="sd-icon">⇩</span>Export data</button>
+        <button id="importBtn" type="button"><span class="sd-icon">⇧</span>Import data</button>
+        <button id="editMeBtn" type="button"><span class="sd-icon">◎</span>Edit my info</button>
+        <button id="replayTourBtn" type="button"><span class="sd-icon">?</span>Show walkthrough</button>
+      </div>
+    </div>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="panel-header">
+    <div class="panel-title-row">
+      <input class="panel-title" id="panelTitle" spellcheck="false">
+    </div>
+    <div class="header-right">
+      <div class="sort-toggle" id="sortToggle" role="button" tabindex="0" title="Sort rows earliest to latest">
+        <span id="sortIcon">↕</span><span id="sortLabel">Sort by time</span>
+      </div>
+      <div class="now-readout"><span class="pulse"></span><span id="nowReadout"></span></div>
+    </div>
+  </div>
+
+  <div class="panel-toolbar" id="panelToolbar"></div>
+
+  <div id="content"></div>
+</div>
+
+<footer>Data lives only in this browser (localStorage) — nothing is sent anywhere. Export to back up or move devices.</footer>
+
+<div class="tooltip" id="tooltip"></div>
+<div id="onboardingRoot"></div>
+<div id="tourRoot"></div>
+
+<script>
+// Curated place dataset: city/place name, country, admin region (state/province), IANA timezone, lat/lon, search aliases.
+// This is intentionally static (no external API) so the app works fully offline and free.
+const PLACES = [{"name": "San Francisco", "country": "United States", "admin": "California", "tz": "America/Los_Angeles", "lat": 37.7749, "lon": -122.4194, "aliases": ["SF", "bay area"]}, {"name": "Los Angeles", "country": "United States", "admin": "California", "tz": "America/Los_Angeles", "lat": 34.0522, "lon": -118.2437, "aliases": ["LA"]}, {"name": "San Diego", "country": "United States", "admin": "California", "tz": "America/Los_Angeles", "lat": 32.7157, "lon": -117.1611, "aliases": []}, {"name": "San Jose", "country": "United States", "admin": "California", "tz": "America/Los_Angeles", "lat": 37.3382, "lon": -121.8863, "aliases": ["silicon valley"]}, {"name": "Sacramento", "country": "United States", "admin": "California", "tz": "America/Los_Angeles", "lat": 38.5816, "lon": -121.4944, "aliases": []}, {"name": "Seattle", "country": "United States", "admin": "Washington", "tz": "America/Los_Angeles", "lat": 47.6062, "lon": -122.3321, "aliases": []}, {"name": "Portland", "country": "United States", "admin": "Oregon", "tz": "America/Los_Angeles", "lat": 45.5152, "lon": -122.6784, "aliases": []}, {"name": "Las Vegas", "country": "United States", "admin": "Nevada", "tz": "America/Los_Angeles", "lat": 36.1699, "lon": -115.1398, "aliases": []}, {"name": "Vancouver", "country": "Canada", "admin": "British Columbia", "tz": "America/Vancouver", "lat": 49.2827, "lon": -123.1207, "aliases": []}, {"name": "Denver", "country": "United States", "admin": "Colorado", "tz": "America/Denver", "lat": 39.7392, "lon": -104.9903, "aliases": []}, {"name": "Salt Lake City", "country": "United States", "admin": "Utah", "tz": "America/Denver", "lat": 40.7608, "lon": -111.891, "aliases": []}, {"name": "Phoenix", "country": "United States", "admin": "Arizona", "tz": "America/Phoenix", "lat": 33.4484, "lon": -112.074, "aliases": []}, {"name": "Calgary", "country": "Canada", "admin": "Alberta", "tz": "America/Edmonton", "lat": 51.0447, "lon": -114.0719, "aliases": []}, {"name": "Chicago", "country": "United States", "admin": "Illinois", "tz": "America/Chicago", "lat": 41.8781, "lon": -87.6298, "aliases": []}, {"name": "Dallas", "country": "United States", "admin": "Texas", "tz": "America/Chicago", "lat": 32.7767, "lon": -96.797, "aliases": []}, {"name": "Houston", "country": "United States", "admin": "Texas", "tz": "America/Chicago", "lat": 29.7604, "lon": -95.3698, "aliases": []}, {"name": "Austin", "country": "United States", "admin": "Texas", "tz": "America/Chicago", "lat": 30.2672, "lon": -97.7431, "aliases": []}, {"name": "San Antonio", "country": "United States", "admin": "Texas", "tz": "America/Chicago", "lat": 29.4241, "lon": -98.4936, "aliases": []}, {"name": "Minneapolis", "country": "United States", "admin": "Minnesota", "tz": "America/Chicago", "lat": 44.9778, "lon": -93.265, "aliases": []}, {"name": "Kansas City", "country": "United States", "admin": "Missouri", "tz": "America/Chicago", "lat": 39.0997, "lon": -94.5786, "aliases": []}, {"name": "New Orleans", "country": "United States", "admin": "Louisiana", "tz": "America/Chicago", "lat": 29.9511, "lon": -90.0715, "aliases": []}, {"name": "Winnipeg", "country": "Canada", "admin": "Manitoba", "tz": "America/Winnipeg", "lat": 49.8951, "lon": -97.1384, "aliases": []}, {"name": "Mexico City", "country": "Mexico", "admin": "", "tz": "America/Mexico_City", "lat": 19.4326, "lon": -99.1332, "aliases": ["CDMX"]}, {"name": "Guadalajara", "country": "Mexico", "admin": "", "tz": "America/Mexico_City", "lat": 20.6597, "lon": -103.3496, "aliases": []}, {"name": "Monterrey", "country": "Mexico", "admin": "", "tz": "America/Monterrey", "lat": 25.6866, "lon": -100.3161, "aliases": []}, {"name": "New York", "country": "United States", "admin": "New York", "tz": "America/New_York", "lat": 40.7128, "lon": -74.006, "aliases": ["NYC", "new york city"]}, {"name": "Toronto", "country": "Canada", "admin": "Ontario", "tz": "America/Toronto", "lat": 43.6532, "lon": -79.3832, "aliases": []}, {"name": "Ottawa", "country": "Canada", "admin": "Ontario", "tz": "America/Toronto", "lat": 45.4215, "lon": -75.6972, "aliases": []}, {"name": "Montreal", "country": "Canada", "admin": "Quebec", "tz": "America/Toronto", "lat": 45.5019, "lon": -73.5674, "aliases": []}, {"name": "Boston", "country": "United States", "admin": "Massachusetts", "tz": "America/New_York", "lat": 42.3601, "lon": -71.0589, "aliases": []}, {"name": "Philadelphia", "country": "United States", "admin": "Pennsylvania", "tz": "America/New_York", "lat": 39.9526, "lon": -75.1652, "aliases": []}, {"name": "Washington", "country": "United States", "admin": "District of Columbia", "tz": "America/New_York", "lat": 38.9072, "lon": -77.0369, "aliases": ["DC", "washington dc"]}, {"name": "Atlanta", "country": "United States", "admin": "Georgia", "tz": "America/New_York", "lat": 33.749, "lon": -84.388, "aliases": []}, {"name": "Miami", "country": "United States", "admin": "Florida", "tz": "America/New_York", "lat": 25.7617, "lon": -80.1918, "aliases": []}, {"name": "Orlando", "country": "United States", "admin": "Florida", "tz": "America/New_York", "lat": 28.5383, "lon": -81.3792, "aliases": []}, {"name": "Charlotte", "country": "United States", "admin": "North Carolina", "tz": "America/New_York", "lat": 35.2271, "lon": -80.8431, "aliases": []}, {"name": "Detroit", "country": "United States", "admin": "Michigan", "tz": "America/New_York", "lat": 42.3314, "lon": -83.0458, "aliases": []}, {"name": "Indianapolis", "country": "United States", "admin": "Indiana", "tz": "America/New_York", "lat": 39.7684, "lon": -86.1581, "aliases": []}, {"name": "Raleigh", "country": "United States", "admin": "North Carolina", "tz": "America/New_York", "lat": 35.7796, "lon": -78.6382, "aliases": []}, {"name": "Pittsburgh", "country": "United States", "admin": "Pennsylvania", "tz": "America/New_York", "lat": 40.4406, "lon": -79.9959, "aliases": []}, {"name": "Bogota", "country": "Colombia", "admin": "", "tz": "America/Bogota", "lat": 4.711, "lon": -74.0721, "aliases": []}, {"name": "Medellin", "country": "Colombia", "admin": "", "tz": "America/Bogota", "lat": 6.2442, "lon": -75.5812, "aliases": []}, {"name": "Lima", "country": "Peru", "admin": "", "tz": "America/Lima", "lat": -12.0464, "lon": -77.0428, "aliases": []}, {"name": "Quito", "country": "Ecuador", "admin": "", "tz": "America/Guayaquil", "lat": -0.1807, "lon": -78.4678, "aliases": []}, {"name": "Santiago", "country": "Chile", "admin": "", "tz": "America/Santiago", "lat": -33.4489, "lon": -70.6693, "aliases": []}, {"name": "Sao Paulo", "country": "Brazil", "admin": "", "tz": "America/Sao_Paulo", "lat": -23.5505, "lon": -46.6333, "aliases": []}, {"name": "Rio de Janeiro", "country": "Brazil", "admin": "", "tz": "America/Sao_Paulo", "lat": -22.9068, "lon": -43.1729, "aliases": []}, {"name": "Brasilia", "country": "Brazil", "admin": "", "tz": "America/Sao_Paulo", "lat": -15.8267, "lon": -47.9218, "aliases": []}, {"name": "Buenos Aires", "country": "Argentina", "admin": "", "tz": "America/Argentina/Buenos_Aires", "lat": -34.6037, "lon": -58.3816, "aliases": []}, {"name": "Montevideo", "country": "Uruguay", "admin": "", "tz": "America/Montevideo", "lat": -34.9011, "lon": -56.1645, "aliases": []}, {"name": "Caracas", "country": "Venezuela", "admin": "", "tz": "America/Caracas", "lat": 10.4806, "lon": -66.9036, "aliases": []}, {"name": "Panama City", "country": "Panama", "admin": "", "tz": "America/Panama", "lat": 8.9824, "lon": -79.5199, "aliases": []}, {"name": "San Jose (Costa Rica)", "country": "Costa Rica", "admin": "", "tz": "America/Costa_Rica", "lat": 9.9281, "lon": -84.0907, "aliases": ["san jose costa rica"]}, {"name": "Honolulu", "country": "United States", "admin": "Hawaii", "tz": "Pacific/Honolulu", "lat": 21.3069, "lon": -157.8583, "aliases": ["hawaii"]}, {"name": "Anchorage", "country": "United States", "admin": "Alaska", "tz": "America/Anchorage", "lat": 61.2181, "lon": -149.9003, "aliases": []}, {"name": "Reykjavik", "country": "Iceland", "admin": "", "tz": "Atlantic/Reykjavik", "lat": 64.1466, "lon": -21.9426, "aliases": []}, {"name": "London", "country": "United Kingdom", "admin": "England", "tz": "Europe/London", "lat": 51.5072, "lon": -0.1276, "aliases": ["UK"]}, {"name": "Manchester", "country": "United Kingdom", "admin": "England", "tz": "Europe/London", "lat": 53.4808, "lon": -2.2426, "aliases": []}, {"name": "Edinburgh", "country": "United Kingdom", "admin": "Scotland", "tz": "Europe/London", "lat": 55.9533, "lon": -3.1883, "aliases": []}, {"name": "Dublin", "country": "Ireland", "admin": "", "tz": "Europe/Dublin", "lat": 53.3498, "lon": -6.2603, "aliases": []}, {"name": "Lisbon", "country": "Portugal", "admin": "", "tz": "Europe/Lisbon", "lat": 38.7223, "lon": -9.1393, "aliases": []}, {"name": "Porto", "country": "Portugal", "admin": "", "tz": "Europe/Lisbon", "lat": 41.1579, "lon": -8.6291, "aliases": []}, {"name": "Madrid", "country": "Spain", "admin": "", "tz": "Europe/Madrid", "lat": 40.4168, "lon": -3.7038, "aliases": []}, {"name": "Barcelona", "country": "Spain", "admin": "", "tz": "Europe/Madrid", "lat": 41.3874, "lon": 2.1686, "aliases": []}, {"name": "Paris", "country": "France", "admin": "", "tz": "Europe/Paris", "lat": 48.8566, "lon": 2.3522, "aliases": []}, {"name": "Lyon", "country": "France", "admin": "", "tz": "Europe/Paris", "lat": 45.764, "lon": 4.8357, "aliases": []}, {"name": "Marseille", "country": "France", "admin": "", "tz": "Europe/Paris", "lat": 43.2965, "lon": 5.3698, "aliases": []}, {"name": "Amsterdam", "country": "Netherlands", "admin": "", "tz": "Europe/Amsterdam", "lat": 52.3676, "lon": 4.9041, "aliases": []}, {"name": "Rotterdam", "country": "Netherlands", "admin": "", "tz": "Europe/Amsterdam", "lat": 51.9244, "lon": 4.4777, "aliases": []}, {"name": "Brussels", "country": "Belgium", "admin": "", "tz": "Europe/Brussels", "lat": 50.8503, "lon": 4.3517, "aliases": []}, {"name": "Berlin", "country": "Germany", "admin": "", "tz": "Europe/Berlin", "lat": 52.52, "lon": 13.405, "aliases": []}, {"name": "Munich", "country": "Germany", "admin": "", "tz": "Europe/Berlin", "lat": 48.1351, "lon": 11.582, "aliases": []}, {"name": "Frankfurt", "country": "Germany", "admin": "", "tz": "Europe/Berlin", "lat": 50.1109, "lon": 8.6821, "aliases": []}, {"name": "Hamburg", "country": "Germany", "admin": "", "tz": "Europe/Berlin", "lat": 53.5511, "lon": 9.9937, "aliases": []}, {"name": "Cologne", "country": "Germany", "admin": "", "tz": "Europe/Berlin", "lat": 50.9375, "lon": 6.9603, "aliases": []}, {"name": "Zurich", "country": "Switzerland", "admin": "", "tz": "Europe/Zurich", "lat": 47.3769, "lon": 8.5417, "aliases": []}, {"name": "Geneva", "country": "Switzerland", "admin": "", "tz": "Europe/Zurich", "lat": 46.2044, "lon": 6.1432, "aliases": []}, {"name": "Vienna", "country": "Austria", "admin": "", "tz": "Europe/Vienna", "lat": 48.2082, "lon": 16.3738, "aliases": []}, {"name": "Milan", "country": "Italy", "admin": "", "tz": "Europe/Rome", "lat": 45.4642, "lon": 9.19, "aliases": []}, {"name": "Rome", "country": "Italy", "admin": "", "tz": "Europe/Rome", "lat": 41.9028, "lon": 12.4964, "aliases": []}, {"name": "Naples", "country": "Italy", "admin": "", "tz": "Europe/Rome", "lat": 40.8518, "lon": 14.2681, "aliases": []}, {"name": "Stockholm", "country": "Sweden", "admin": "", "tz": "Europe/Stockholm", "lat": 59.3293, "lon": 18.0686, "aliases": []}, {"name": "Gothenburg", "country": "Sweden", "admin": "", "tz": "Europe/Stockholm", "lat": 57.7089, "lon": 11.9746, "aliases": []}, {"name": "Oslo", "country": "Norway", "admin": "", "tz": "Europe/Oslo", "lat": 59.9139, "lon": 10.7522, "aliases": []}, {"name": "Copenhagen", "country": "Denmark", "admin": "", "tz": "Europe/Copenhagen", "lat": 55.6761, "lon": 12.5683, "aliases": []}, {"name": "Helsinki", "country": "Finland", "admin": "", "tz": "Europe/Helsinki", "lat": 60.1699, "lon": 24.9384, "aliases": []}, {"name": "Warsaw", "country": "Poland", "admin": "", "tz": "Europe/Warsaw", "lat": 52.2297, "lon": 21.0122, "aliases": []}, {"name": "Krakow", "country": "Poland", "admin": "", "tz": "Europe/Warsaw", "lat": 50.0647, "lon": 19.945, "aliases": []}, {"name": "Prague", "country": "Czechia", "admin": "", "tz": "Europe/Prague", "lat": 50.0755, "lon": 14.4378, "aliases": []}, {"name": "Budapest", "country": "Hungary", "admin": "", "tz": "Europe/Budapest", "lat": 47.4979, "lon": 19.0402, "aliases": []}, {"name": "Bucharest", "country": "Romania", "admin": "", "tz": "Europe/Bucharest", "lat": 44.4268, "lon": 26.1025, "aliases": []}, {"name": "Athens", "country": "Greece", "admin": "", "tz": "Europe/Athens", "lat": 37.9838, "lon": 23.7275, "aliases": []}, {"name": "Sofia", "country": "Bulgaria", "admin": "", "tz": "Europe/Sofia", "lat": 42.6977, "lon": 23.3219, "aliases": []}, {"name": "Belgrade", "country": "Serbia", "admin": "", "tz": "Europe/Belgrade", "lat": 44.7866, "lon": 20.4489, "aliases": []}, {"name": "Zagreb", "country": "Croatia", "admin": "", "tz": "Europe/Zagreb", "lat": 45.815, "lon": 15.9819, "aliases": []}, {"name": "Kyiv", "country": "Ukraine", "admin": "", "tz": "Europe/Kyiv", "lat": 50.4501, "lon": 30.5234, "aliases": []}, {"name": "Moscow", "country": "Russia", "admin": "", "tz": "Europe/Moscow", "lat": 55.7558, "lon": 37.6173, "aliases": []}, {"name": "Saint Petersburg", "country": "Russia", "admin": "", "tz": "Europe/Moscow", "lat": 59.9311, "lon": 30.3609, "aliases": []}, {"name": "Istanbul", "country": "Turkey", "admin": "", "tz": "Europe/Istanbul", "lat": 41.0082, "lon": 28.9784, "aliases": []}, {"name": "Cairo", "country": "Egypt", "admin": "", "tz": "Africa/Cairo", "lat": 30.0444, "lon": 31.2357, "aliases": []}, {"name": "Casablanca", "country": "Morocco", "admin": "", "tz": "Africa/Casablanca", "lat": 33.5731, "lon": -7.5898, "aliases": []}, {"name": "Lagos", "country": "Nigeria", "admin": "", "tz": "Africa/Lagos", "lat": 6.5244, "lon": 3.3792, "aliases": []}, {"name": "Abuja", "country": "Nigeria", "admin": "", "tz": "Africa/Lagos", "lat": 9.0765, "lon": 7.3986, "aliases": []}, {"name": "Nairobi", "country": "Kenya", "admin": "", "tz": "Africa/Nairobi", "lat": -1.2921, "lon": 36.8219, "aliases": []}, {"name": "Addis Ababa", "country": "Ethiopia", "admin": "", "tz": "Africa/Addis_Ababa", "lat": 9.025, "lon": 38.7469, "aliases": []}, {"name": "Accra", "country": "Ghana", "admin": "", "tz": "Africa/Accra", "lat": 5.6037, "lon": -0.187, "aliases": []}, {"name": "Johannesburg", "country": "South Africa", "admin": "", "tz": "Africa/Johannesburg", "lat": -26.2041, "lon": 28.0473, "aliases": []}, {"name": "Cape Town", "country": "South Africa", "admin": "", "tz": "Africa/Johannesburg", "lat": -33.9249, "lon": 18.4241, "aliases": []}, {"name": "Dar es Salaam", "country": "Tanzania", "admin": "", "tz": "Africa/Dar_es_Salaam", "lat": -6.7924, "lon": 39.2083, "aliases": []}, {"name": "Kampala", "country": "Uganda", "admin": "", "tz": "Africa/Kampala", "lat": 0.3476, "lon": 32.5825, "aliases": []}, {"name": "Tunis", "country": "Tunisia", "admin": "", "tz": "Africa/Tunis", "lat": 36.8065, "lon": 10.1815, "aliases": []}, {"name": "Dubai", "country": "United Arab Emirates", "admin": "", "tz": "Asia/Dubai", "lat": 25.2048, "lon": 55.2708, "aliases": ["UAE"]}, {"name": "Abu Dhabi", "country": "United Arab Emirates", "admin": "", "tz": "Asia/Dubai", "lat": 24.4539, "lon": 54.3773, "aliases": []}, {"name": "Doha", "country": "Qatar", "admin": "", "tz": "Asia/Qatar", "lat": 25.2854, "lon": 51.531, "aliases": []}, {"name": "Riyadh", "country": "Saudi Arabia", "admin": "", "tz": "Asia/Riyadh", "lat": 24.7136, "lon": 46.6753, "aliases": []}, {"name": "Jeddah", "country": "Saudi Arabia", "admin": "", "tz": "Asia/Riyadh", "lat": 21.4858, "lon": 39.1925, "aliases": []}, {"name": "Kuwait City", "country": "Kuwait", "admin": "", "tz": "Asia/Kuwait", "lat": 29.3759, "lon": 47.9774, "aliases": []}, {"name": "Manama", "country": "Bahrain", "admin": "", "tz": "Asia/Bahrain", "lat": 26.2285, "lon": 50.586, "aliases": []}, {"name": "Muscat", "country": "Oman", "admin": "", "tz": "Asia/Muscat", "lat": 23.588, "lon": 58.3829, "aliases": []}, {"name": "Tel Aviv", "country": "Israel", "admin": "", "tz": "Asia/Jerusalem", "lat": 32.0853, "lon": 34.7818, "aliases": []}, {"name": "Jerusalem", "country": "Israel", "admin": "", "tz": "Asia/Jerusalem", "lat": 31.7683, "lon": 35.2137, "aliases": []}, {"name": "Amman", "country": "Jordan", "admin": "", "tz": "Asia/Amman", "lat": 31.9454, "lon": 35.9284, "aliases": []}, {"name": "Beirut", "country": "Lebanon", "admin": "", "tz": "Asia/Beirut", "lat": 33.8938, "lon": 35.5018, "aliases": []}, {"name": "Baghdad", "country": "Iraq", "admin": "", "tz": "Asia/Baghdad", "lat": 33.3152, "lon": 44.3661, "aliases": []}, {"name": "Tehran", "country": "Iran", "admin": "", "tz": "Asia/Tehran", "lat": 35.6892, "lon": 51.389, "aliases": []}, {"name": "Karachi", "country": "Pakistan", "admin": "", "tz": "Asia/Karachi", "lat": 24.8607, "lon": 67.0011, "aliases": []}, {"name": "Lahore", "country": "Pakistan", "admin": "", "tz": "Asia/Karachi", "lat": 31.5497, "lon": 74.3436, "aliases": []}, {"name": "Islamabad", "country": "Pakistan", "admin": "", "tz": "Asia/Karachi", "lat": 33.6844, "lon": 73.0479, "aliases": []}, {"name": "Mumbai", "country": "India", "admin": "Maharashtra", "tz": "Asia/Kolkata", "lat": 19.076, "lon": 72.8777, "aliases": ["bombay"]}, {"name": "Pune", "country": "India", "admin": "Maharashtra", "tz": "Asia/Kolkata", "lat": 18.5204, "lon": 73.8567, "aliases": []}, {"name": "Delhi", "country": "India", "admin": "Delhi", "tz": "Asia/Kolkata", "lat": 28.7041, "lon": 77.1025, "aliases": ["new delhi"]}, {"name": "Bengaluru", "country": "India", "admin": "Karnataka", "tz": "Asia/Kolkata", "lat": 12.9716, "lon": 77.5946, "aliases": ["bangalore"]}, {"name": "Hyderabad", "country": "India", "admin": "Telangana", "tz": "Asia/Kolkata", "lat": 17.385, "lon": 78.4867, "aliases": []}, {"name": "Chennai", "country": "India", "admin": "Tamil Nadu", "tz": "Asia/Kolkata", "lat": 13.0827, "lon": 80.2707, "aliases": ["madras"]}, {"name": "Kolkata", "country": "India", "admin": "West Bengal", "tz": "Asia/Kolkata", "lat": 22.5726, "lon": 88.3639, "aliases": ["calcutta"]}, {"name": "Ahmedabad", "country": "India", "admin": "Gujarat", "tz": "Asia/Kolkata", "lat": 23.0225, "lon": 72.5714, "aliases": []}, {"name": "Jaipur", "country": "India", "admin": "Rajasthan", "tz": "Asia/Kolkata", "lat": 26.9124, "lon": 75.7873, "aliases": []}, {"name": "Chandigarh", "country": "India", "admin": "Punjab", "tz": "Asia/Kolkata", "lat": 30.7333, "lon": 76.7794, "aliases": []}, {"name": "Kochi", "country": "India", "admin": "Kerala", "tz": "Asia/Kolkata", "lat": 9.9312, "lon": 76.2673, "aliases": ["cochin"]}, {"name": "Gurugram", "country": "India", "admin": "Haryana", "tz": "Asia/Kolkata", "lat": 28.4595, "lon": 77.0266, "aliases": ["gurgaon"]}, {"name": "Noida", "country": "India", "admin": "Uttar Pradesh", "tz": "Asia/Kolkata", "lat": 28.5355, "lon": 77.391, "aliases": []}, {"name": "Colombo", "country": "Sri Lanka", "admin": "", "tz": "Asia/Colombo", "lat": 6.9271, "lon": 79.8612, "aliases": []}, {"name": "Dhaka", "country": "Bangladesh", "admin": "", "tz": "Asia/Dhaka", "lat": 23.8103, "lon": 90.4125, "aliases": []}, {"name": "Kathmandu", "country": "Nepal", "admin": "", "tz": "Asia/Kathmandu", "lat": 27.7172, "lon": 85.324, "aliases": []}, {"name": "Tashkent", "country": "Uzbekistan", "admin": "", "tz": "Asia/Tashkent", "lat": 41.2995, "lon": 69.2401, "aliases": []}, {"name": "Almaty", "country": "Kazakhstan", "admin": "", "tz": "Asia/Almaty", "lat": 43.222, "lon": 76.8512, "aliases": []}, {"name": "Bangkok", "country": "Thailand", "admin": "", "tz": "Asia/Bangkok", "lat": 13.7563, "lon": 100.5018, "aliases": []}, {"name": "Jakarta", "country": "Indonesia", "admin": "", "tz": "Asia/Jakarta", "lat": -6.2088, "lon": 106.8456, "aliases": []}, {"name": "Bali", "country": "Indonesia", "admin": "", "tz": "Asia/Makassar", "lat": -8.4095, "lon": 115.1889, "aliases": ["denpasar"]}, {"name": "Ho Chi Minh City", "country": "Vietnam", "admin": "", "tz": "Asia/Ho_Chi_Minh", "lat": 10.8231, "lon": 106.6297, "aliases": ["saigon"]}, {"name": "Hanoi", "country": "Vietnam", "admin": "", "tz": "Asia/Ho_Chi_Minh", "lat": 21.0278, "lon": 105.8342, "aliases": []}, {"name": "Singapore", "country": "Singapore", "admin": "", "tz": "Asia/Singapore", "lat": 1.3521, "lon": 103.8198, "aliases": []}, {"name": "Kuala Lumpur", "country": "Malaysia", "admin": "", "tz": "Asia/Kuala_Lumpur", "lat": 3.139, "lon": 101.6869, "aliases": []}, {"name": "Manila", "country": "Philippines", "admin": "", "tz": "Asia/Manila", "lat": 14.5995, "lon": 120.9842, "aliases": []}, {"name": "Cebu", "country": "Philippines", "admin": "", "tz": "Asia/Manila", "lat": 10.3157, "lon": 123.8854, "aliases": []}, {"name": "Hong Kong", "country": "Hong Kong", "admin": "", "tz": "Asia/Hong_Kong", "lat": 22.3193, "lon": 114.1694, "aliases": []}, {"name": "Shanghai", "country": "China", "admin": "", "tz": "Asia/Shanghai", "lat": 31.2304, "lon": 121.4737, "aliases": []}, {"name": "Beijing", "country": "China", "admin": "", "tz": "Asia/Shanghai", "lat": 39.9042, "lon": 116.4074, "aliases": []}, {"name": "Shenzhen", "country": "China", "admin": "", "tz": "Asia/Shanghai", "lat": 22.5431, "lon": 114.0579, "aliases": []}, {"name": "Guangzhou", "country": "China", "admin": "", "tz": "Asia/Shanghai", "lat": 23.1291, "lon": 113.2644, "aliases": []}, {"name": "Chengdu", "country": "China", "admin": "", "tz": "Asia/Shanghai", "lat": 30.5728, "lon": 104.0668, "aliases": []}, {"name": "Taipei", "country": "Taiwan", "admin": "", "tz": "Asia/Taipei", "lat": 25.033, "lon": 121.5654, "aliases": []}, {"name": "Seoul", "country": "South Korea", "admin": "", "tz": "Asia/Seoul", "lat": 37.5665, "lon": 126.978, "aliases": []}, {"name": "Busan", "country": "South Korea", "admin": "", "tz": "Asia/Seoul", "lat": 35.1796, "lon": 129.0756, "aliases": []}, {"name": "Tokyo", "country": "Japan", "admin": "", "tz": "Asia/Tokyo", "lat": 35.6762, "lon": 139.6503, "aliases": []}, {"name": "Osaka", "country": "Japan", "admin": "", "tz": "Asia/Tokyo", "lat": 34.6937, "lon": 135.5023, "aliases": []}, {"name": "Yokohama", "country": "Japan", "admin": "", "tz": "Asia/Tokyo", "lat": 35.4437, "lon": 139.638, "aliases": []}, {"name": "Nagoya", "country": "Japan", "admin": "", "tz": "Asia/Tokyo", "lat": 35.1815, "lon": 136.9066, "aliases": []}, {"name": "Fukuoka", "country": "Japan", "admin": "", "tz": "Asia/Tokyo", "lat": 33.5904, "lon": 130.4017, "aliases": []}, {"name": "Perth", "country": "Australia", "admin": "Western Australia", "tz": "Australia/Perth", "lat": -31.9505, "lon": 115.8605, "aliases": []}, {"name": "Adelaide", "country": "Australia", "admin": "South Australia", "tz": "Australia/Adelaide", "lat": -34.9285, "lon": 138.6007, "aliases": []}, {"name": "Darwin", "country": "Australia", "admin": "Northern Territory", "tz": "Australia/Darwin", "lat": -12.4634, "lon": 130.8456, "aliases": []}, {"name": "Brisbane", "country": "Australia", "admin": "Queensland", "tz": "Australia/Brisbane", "lat": -27.4698, "lon": 153.0251, "aliases": []}, {"name": "Sydney", "country": "Australia", "admin": "New South Wales", "tz": "Australia/Sydney", "lat": -33.8688, "lon": 151.2093, "aliases": []}, {"name": "Melbourne", "country": "Australia", "admin": "Victoria", "tz": "Australia/Melbourne", "lat": -37.8136, "lon": 144.9631, "aliases": []}, {"name": "Canberra", "country": "Australia", "admin": "Australian Capital Territory", "tz": "Australia/Sydney", "lat": -35.2809, "lon": 149.13, "aliases": []}, {"name": "Auckland", "country": "New Zealand", "admin": "", "tz": "Pacific/Auckland", "lat": -36.8485, "lon": 174.7633, "aliases": []}, {"name": "Wellington", "country": "New Zealand", "admin": "", "tz": "Pacific/Auckland", "lat": -41.2865, "lon": 174.7762, "aliases": []}, {"name": "Suva", "country": "Fiji", "admin": "", "tz": "Pacific/Fiji", "lat": -18.1416, "lon": 178.4419, "aliases": []}];
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { PLACES };
+}
+
+</script>
+<script>
+// ============================================================================
+// core.js — pure logic, no DOM access. Kept separate so it can be unit-tested
+// (see /tests) and reasoned about independently of rendering.
+// ============================================================================
+
+/* ---------------------------------------------------------------------------
+ * TIME
+ * -------------------------------------------------------------------------*/
+
+/**
+ * How "current time" is calculated for each person:
+ * 1. We always start from the single true moment `new Date()` (i.e. UTC "now",
+ *    the same instant everywhere).
+ * 2. For each person, we ask the browser's Intl API to render that instant in
+ *    their IANA timezone (e.g. "Asia/Kolkata"). Intl.DateTimeFormat handles
+ *    daylight saving time correctly for us — we never hardcode a UTC offset.
+ * 3. The result is their local wall-clock hour, used to position the bubble
+ *    and to compute day/night + meeting-friendliness.
+ * This means a person's row updates correctly across DST changes automatically,
+ * as long as their IANA zone (e.g. "America/New_York") is correct — that's why
+ * every place in the dataset stores a real IANA zone rather than a fixed offset.
+ */
+
+/**
+ * "Fixed:<minutes>" is our own convention for a manually-chosen UTC offset
+ * (used by the "can't find their city" fallback). Real IANA zones (e.g.
+ * "Asia/Kolkata") support fractional-hour offsets like +5:30 or +5:45 via
+ * Intl automatically, but Intl's Etc/GMT zones only support whole hours —
+ * so manual offsets are handled with plain arithmetic instead, which works
+ * for any offset including quarter-hours, and skips DST (documented in the UI).
+ */
+const FIXED_TZ_PREFIX = 'Fixed:';
+function isFixedTz(tz) { return typeof tz === 'string' && tz.startsWith(FIXED_TZ_PREFIX); }
+function fixedTzMinutes(tz) { return parseInt(tz.slice(FIXED_TZ_PREFIX.length), 10); }
+function makeFixedTz(offsetMinutes) { return FIXED_TZ_PREFIX + offsetMinutes; }
+
+/** Returns { hourFloat, hh, mm } — local wall-clock time in `tz` at instant `date`. */
+function localTimeParts(tz, date) {
+  if (isFixedTz(tz)) {
+    const totalMin = (date.getTime() / 60000 + fixedTzMinutes(tz));
+    const minsInDay = ((Math.floor(totalMin) % 1440) + 1440) % 1440;
+    const hh = Math.floor(minsInDay / 60);
+    const mm = minsInDay % 60;
+    return { hourFloat: hh + mm / 60, hh, mm };
+  }
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  const parts = fmt.formatToParts(date).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+  const hh = parseInt(parts.hour, 10) % 24;
+  const mm = parseInt(parts.minute, 10);
+  const ss = parseInt(parts.second, 10);
+  return { hourFloat: hh + mm / 60 + ss / 3600, hh, mm };
+}
+
+/** Human-readable "3:45 PM" style clock string in `tz`. */
+function formatClock(tz, date) {
+  if (isFixedTz(tz)) {
+    const { hh, mm } = localTimeParts(tz, date);
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+    return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
+  }
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true
+  }).format(date);
+}
+
+/** Minutes offset of `tz` from UTC at instant `date` (handles DST for real IANA zones). */
+function utcOffsetMinutes(tz, date) {
+  if (isFixedTz(tz)) return fixedTzMinutes(tz);
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  const p = fmt.formatToParts(date).reduce((acc, x) => { acc[x.type] = x.value; return acc; }, {});
+  const hour24 = p.hour === '24' ? 0 : p.hour;
+  const asUTC = Date.UTC(p.year, p.month - 1, p.day, hour24, p.minute, p.second);
+  return Math.round((asUTC - date.getTime()) / 60000);
+}
+
+/**
+ * Approximate local sunrise/sunset hour-of-day for shading only (not precision
+ * astronomy). Returns null for either value during polar day/night.
+ */
+function sunTimes(lat, lon, tz, date) {
+  // A manually-added person (fixed offset, no real coordinates) has no
+  // meaningful sunrise/sunset — the row falls back to a flat neutral shade
+  // rather than pretending lat=0,lon=0 (the Gulf of Guinea) is their sky.
+  if (isFixedTz(tz)) return { sunrise: null, sunset: null };
+  const start = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const dayOfYear = Math.floor((date - start) / 86400000);
+  const zenith = 90.833 * Math.PI / 180;
+  const latRad = lat * Math.PI / 180;
+
+  function calc(isSunrise) {
+    const lngHour = lon / 15;
+    const t = dayOfYear + ((isSunrise ? 6 : 18) - lngHour) / 24;
+    const M = (0.9856 * t) - 3.289;
+    const Mrad = M * Math.PI / 180;
+    let L = M + (1.916 * Math.sin(Mrad)) + (0.020 * Math.sin(2 * Mrad)) + 282.634;
+    L = ((L % 360) + 360) % 360;
+    const Lrad = L * Math.PI / 180;
+    let RA = Math.atan2(0.91764 * Math.tan(Lrad), 1) * 180 / Math.PI;
+    RA = ((RA % 360) + 360) % 360;
+    const Lquadrant = Math.floor(L / 90) * 90;
+    const RAquadrant = Math.floor(RA / 90) * 90;
+    RA = (RA + (Lquadrant - RAquadrant)) / 15;
+    const sinDec = 0.39782 * Math.sin(Lrad);
+    const cosDec = Math.cos(Math.asin(sinDec));
+    const cosH = (Math.cos(zenith) - (sinDec * Math.sin(latRad))) / (cosDec * Math.cos(latRad));
+    if (cosH > 1 || cosH < -1) return null; // sun never rises/sets that day at this latitude
+    let H = isSunrise ? 360 - (Math.acos(cosH) * 180 / Math.PI) : (Math.acos(cosH) * 180 / Math.PI);
+    H = H / 15;
+    const T = H + RA - (0.06571 * t) - 6.622;
+    let UT = T - lngHour;
+    return ((UT % 24) + 24) % 24;
+  }
+
+  const sunriseUTC = calc(true);
+  const sunsetUTC = calc(false);
+  const offsetH = utcOffsetMinutes(tz, date) / 60;
+  const toLocal = (utcH) => utcH === null ? null : (((utcH + offsetH) % 24) + 24) % 24;
+  return { sunrise: toLocal(sunriseUTC), sunset: toLocal(sunsetUTC) };
+}
+
+/* ---------------------------------------------------------------------------
+ * SEARCH
+ * A place matches a query if the query is found in its name, country, admin
+ * region (state/province), or any alias — so "california", "pune", "india",
+ * and "bay area" all resolve. Results are ranked so exact/prefix name matches
+ * beat matches found only in a country or alias field.
+ * -------------------------------------------------------------------------*/
+
+function searchPlaces(places, query, limit = 8) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+
+  const scored = [];
+  for (const place of places) {
+    const name = place.name.toLowerCase();
+    const country = (place.country || '').toLowerCase();
+    const admin = (place.admin || '').toLowerCase();
+    const aliases = (place.aliases || []).map(a => a.toLowerCase());
+
+    let score = -1;
+    if (name === q) score = 100;
+    else if (name.startsWith(q)) score = 90;
+    else if (name.includes(q)) score = 70;
+    else if (aliases.some(a => a === q)) score = 65;
+    else if (aliases.some(a => a.includes(q))) score = 55;
+    else if (admin.startsWith(q)) score = 45;
+    else if (admin.includes(q)) score = 35;
+    else if (country.startsWith(q)) score = 30;
+    else if (country.includes(q)) score = 20;
+
+    if (score > 0) scored.push({ place, score });
+  }
+
+  scored.sort((a, b) => b.score - a.score || a.place.name.localeCompare(b.place.name));
+  return scored.slice(0, limit).map(s => s.place);
+}
+
+/**
+ * Common UTC-offset fallback list, used when someone can't find their city.
+ * Lets anyone add a person by offset alone (see requirement: manual time entry
+ * as a fallback to search). Not DST-aware — flagged in the UI as approximate.
+ */
+const UTC_OFFSETS = [];
+for (let m = -720; m <= 840; m += 30) {
+  const h = m / 60;
+  const sign = h >= 0 ? '+' : '-';
+  const abs = Math.abs(h);
+  const hh = Math.floor(abs);
+  const mm = Math.round((abs - hh) * 60);
+  const label = `UTC${sign}${hh}${mm ? ':' + String(mm).padStart(2, '0') : ''}`;
+  UTC_OFFSETS.push({ minutes: m, label });
+}
+
+/* ---------------------------------------------------------------------------
+ * MEETING-TIME SCORING
+ *
+ * Goal: given a group of people (each with a timezone), suggest good times to
+ * meet, without either of two failure modes:
+ *   (a) a plain SUM of "how bad is this hour for each person" lets a large
+ *       group's small conveniences outvote one person's severe inconvenience
+ *       (e.g. it can rate waking one teammate at 3am as *better* than a slot
+ *       where 20 people are each an hour later than ideal — worked through
+ *       with worked examples before choosing this formula; see /tests).
+ *   (b) a plain MAX (only look at the worst-off person) ignores the group
+ *       entirely once the worst person is fixed, so it can't tell a slot
+ *       where everyone else is great apart from that one person, from a slot
+ *       where everyone else is *also* bad.
+ *
+ * Fix: score = a blend, weighted toward the worst-off person, so no team size
+ * can dilute one person's bad slot into looking fine, while the average still
+ * breaks ties between slots that are equally bad for the worst person.
+ * -------------------------------------------------------------------------*/
+
+const SCORING = {
+  workStart: 9,   // 9am
+  workEnd: 18,    // 6pm
+  dayStart: 7,    // treated as "awake" from 7am
+  dayEnd: 22,     // to 10pm
+  worstWeight: 0.65 // how much the worst-affected person dominates the score
+};
+
+/**
+ * Cost of a given local hour for one person. 0 = squarely in working hours.
+ * The curve is smooth (no cliffs) so 8:59am and 9:01am aren't treated as
+ * night-and-day different — a hard cutoff is exactly the kind of "synthetic,
+ * rigid" scoring that produces silly rankings.
+ */
+function personHourCost(hourFloat, opts = SCORING) {
+  const { workStart, workEnd, dayStart, dayEnd } = opts;
+  if (hourFloat >= workStart && hourFloat < workEnd) return 0;
+
+  const distToStart = Math.abs(hourFloat - workStart);
+  const distToEnd = Math.abs(hourFloat - workEnd);
+  let dist = Math.min(distToStart, distToEnd);
+  dist = Math.min(dist, 24 - dist); // wrap around midnight
+
+  const isAwake = hourFloat >= dayStart && hourFloat < dayEnd;
+  if (isAwake) return dist * 0.35;               // outside work but awake: gentle ramp
+  return 1.2 + dist * 0.9;                        // asleep: steep, plus a flat "waking someone" penalty
+}
+
+/**
+ * Rounds an instant up to the next clean half-hour mark in UTC (`:00` or
+ * `:30`). Used so every candidate meeting time we ever score or suggest
+ * lands on a clean clock mark for people on whole- or half-hour UTC offsets
+ * (the vast majority), rather than on whatever odd minute `new Date()`
+ * happened to return (e.g. "7:07 PM").
+ */
+function snapUpToHalfHour(date) {
+  const halfHourMs = 30 * 60000;
+  const remainder = date.getTime() % halfHourMs;
+  return remainder === 0 ? new Date(date.getTime()) : new Date(date.getTime() + (halfHourMs - remainder));
+}
+
+/**
+ * Scores one candidate UTC instant for a list of people.
+ * Returns { instant, score, avg, worst, worstPerson, perPerson: [{personId, cost, hour}] }
+ */
+function scoreInstant(people, instant, opts = SCORING) {
+  const perPerson = people.map(p => {
+    const { hourFloat } = localTimeParts(p.tz, instant);
+    const cost = personHourCost(hourFloat, opts);
+    return { personId: p.id, name: p.name, hour: hourFloat, cost };
+  });
+  const avg = perPerson.reduce((s, x) => s + x.cost, 0) / (perPerson.length || 1);
+  const worstEntry = perPerson.reduce((a, b) => (b.cost > a.cost ? b : a), perPerson[0] || { cost: 0 });
+  const worst = worstEntry ? worstEntry.cost : 0;
+  const score = opts.worstWeight * worst + (1 - opts.worstWeight) * avg;
+  return { instant, score, avg, worst, worstPerson: worstEntry ? worstEntry.name : null, perPerson };
+}
+
+/**
+ * Given any instant (not necessarily on a clean mark), returns whichever of
+ * the nearest clean half-hour marks (the one at/before it, or the one after)
+ * scores better for the group — "round on the side of better score" rather
+ * than always rounding to nearest-in-time. If the instant is already on a
+ * clean mark, it's returned unchanged.
+ */
+function roundToBetterMark(people, instant, opts = SCORING) {
+  const halfHourMs = 30 * 60000;
+  const ms = instant.getTime();
+  const remainder = ms % halfHourMs;
+  if (remainder === 0) return instant;
+  const down = new Date(ms - remainder);
+  const up = new Date(down.getTime() + halfHourMs);
+  const scoreDown = scoreInstant(people, down, opts).score;
+  const scoreUp = scoreInstant(people, up, opts).score;
+  return scoreDown <= scoreUp ? down : up;
+}
+
+/**
+ * Suggests the best meeting slots for a group over the next 24h, sampled on
+ * a clean 30-minute grid (:00 and :30 marks only — see snapUpToHalfHour), so
+ * every suggestion is a time a human would actually propose (e.g. "5:00 PM",
+ * "6:30 AM"), never an odd minute like "7:07 PM". Returns the top `topN`
+ * distinct slots, sorted best first.
+ */
+function suggestMeetingTimes(people, fromDate = new Date(), topN = 3, opts = SCORING) {
+  if (!people.length) return [];
+  const gridStart = snapUpToHalfHour(fromDate);
+  const candidates = [];
+  for (let stepMin = 0; stepMin < 24 * 60; stepMin += 30) {
+    const instant = new Date(gridStart.getTime() + stepMin * 60000);
+    candidates.push(scoreInstant(people, instant, opts));
+  }
+  candidates.sort((a, b) => a.score - b.score);
+
+  // De-duplicate slots that are within 90 minutes of an already-picked, better slot,
+  // so we don't show three near-identical options clustered around one peak.
+  const picked = [];
+  for (const c of candidates) {
+    if (picked.length >= topN) break;
+    const tooClose = picked.some(p => Math.abs(p.instant - c.instant) < 90 * 60000);
+    if (!tooClose) picked.push(c);
+  }
+  return picked;
+}
+
+// Export for both browser (global) and Node (tests) use.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    localTimeParts, formatClock, utcOffsetMinutes, sunTimes,
+    searchPlaces, UTC_OFFSETS,
+    isFixedTz, fixedTzMinutes, makeFixedTz,
+    SCORING, personHourCost, scoreInstant, suggestMeetingTimes,
+    snapUpToHalfHour, roundToBetterMark
+  };
+}
+
+</script>
+<script>
+// ============================================================================
+// app.js — state management and DOM rendering, appended after data.js and
+// core.js in index.html (all three are bundled into one file so the app
+// never breaks from a missing/misordered script — see index.html for why).
+// ============================================================================
+
+if (typeof PLACES === 'undefined' || typeof searchPlaces === 'undefined') {
+  // Defensive guard: if this file is ever split back into separate script
+  // files (or edited in a way that breaks load order), fail loudly here
+  document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#E37373;max-width:520px;">' +
+    '<h2>TimeTogether couldn\'t start</h2>' +
+    '<p>A required script did not load (data.js / core.js). If you split this file back into separate files, ' +
+    'make sure data.js and core.js load before app.js in your HTML. The single-file version avoids this entirely.</p>' +
+    '</div>';
+  throw new Error('TimeTogether: PLACES/searchPlaces not defined — data.js or core.js did not load before app.js.');
+}
+
+const EMOJI_OPTIONS = ["😀","😎","🦊","🐼","🐨","🐸","🦁","🐯","🐵","🦉","🐳","🌵","🌸","⚡","🔥","🌙","☀️","🍀","🎧","🚀","☕","🏄","🎨","📚"];
+const COLOR_OPTIONS = ["#F2A65A","#7C9CFF","#6FCF97","#E37373","#C792EA","#5DD5C8","#F2D06B","#FF8FB1","#9AA5FF","#8AD6C7"];
+const STORE_KEY = "timetogether_v2";
+const THEME_KEY = "timetogether_theme";
+
+/* ---------------------------------------------------------------------------
+ * STATE
+ * `state.me`, when set, is a single person-shaped record kept OUTSIDE every
+ * group's people list, so it's defined once and pinned into every group's
+ * view instead of being duplicated (and going stale) per group.
+ * -------------------------------------------------------------------------*/
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+function seedState() {
+  const person = (name, cityName, emoji, color) => {
+    const c = PLACES.find(p => p.name === cityName) || PLACES[0];
+    return {
+      id: uid(), name, nickname: '', city: c.name, tz: c.tz, lat: c.lat, lon: c.lon,
+      avatarMode: 'emoji', emoji, photoUrl: '', color
+    };
+  };
+  const g1 = {
+    id: uid(), name: 'Example Team', sortByTime: false,
+    people: [
+      person('Amy', 'San Francisco', '😎', '#F2A65A'),
+      person('Raj', 'Bengaluru', '🚀', '#7C9CFF'),
+      person('Lena', 'Berlin', '🌸', '#6FCF97'),
+      person('Kenji', 'Tokyo', '🔥', '#E37373'),
+    ]
+  };
+  return { activeGroup: g1.id, groups: [g1], me: null };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return seedState();
+    const parsed = JSON.parse(raw);
+    if (!parsed.groups || !parsed.groups.length) return seedState();
+    if (!('me' in parsed)) parsed.me = null;
+    parsed.groups.forEach(g => { if (!('sortByTime' in g)) g.sortByTime = false; });
+    return parsed;
+  } catch (e) {
+    console.warn('Could not read saved data, starting fresh.', e);
+    return seedState();
+  }
+}
+
+let state = loadState();
+const save = () => localStorage.setItem(STORE_KEY, JSON.stringify(state));
+const activeGroup = () => state.groups.find(g => g.id === state.activeGroup) || state.groups[0];
+
+/* ---------------------------------------------------------------------------
+ * THEME
+ * -------------------------------------------------------------------------*/
+
+function loadTheme() {
+  try { return localStorage.getItem(THEME_KEY) || 'dark'; }
+  catch (e) { return 'dark'; }
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+  const btn = el('themeToggleBtn');
+  if (btn) btn.innerHTML = theme === 'dark'
+    ? `<span class="sd-icon">☀</span>Light mode`
+    : `<span class="sd-icon">☾</span>Dark mode`;
+}
+let currentTheme = loadTheme();
+applyTheme(currentTheme);
+
+/* ---------------------------------------------------------------------------
+ * DOM refs & small utilities
+ * -------------------------------------------------------------------------*/
+
+const el = (id) => document.getElementById(id);
+const tabsEl = el('tabs');
+const contentEl = el('content');
+const panelTitleEl = el('panelTitle');
+const nowReadoutEl = el('nowReadout');
+const tooltipEl = el('tooltip');
+const panelToolbarEl = el('panelToolbar');
+const tabsFadeLeftEl = el('tabsFadeLeft');
+const tabsFadeRightEl = el('tabsFadeRight');
+const sortToggleEl = el('sortToggle');
+
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function avatarInner(p) {
+  if (p.avatarMode === 'photo' && p.photoUrl) return `<img src="${escapeHtml(p.photoUrl)}" alt="">`;
+  if (p.avatarMode === 'nickname' && p.nickname) return escapeHtml(p.nickname.slice(0, 3));
+  if (p.avatarMode === 'emoji' && p.emoji) return p.emoji;
+  const initials = p.name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  return initials || '?';
+}
+
+function buildGradient(sunrise, sunset) {
+  // Colors read from CSS custom properties so the gradient adapts to the
+  // active theme instead of being hardcoded to dark-mode values.
+  const rootStyle = getComputedStyle(document.documentElement);
+  const dayColor = rootStyle.getPropertyValue('--day-fill').trim() || 'rgba(124,156,255,0.22)';
+  const nightColor = rootStyle.getPropertyValue('--night-fill').trim() || 'rgba(10,11,18,0.9)';
+  if (sunrise === null || sunset === null) return `linear-gradient(90deg, ${nightColor}, ${nightColor})`;
+  const pct = h => (h / 24 * 100).toFixed(2) + '%';
+  const fadeW = 0.7;
+  const sr1 = Math.max(0, sunrise - fadeW), sr2 = Math.min(24, sunrise + fadeW);
+  const ss1 = Math.max(0, sunset - fadeW), ss2 = Math.min(24, sunset + fadeW);
+  return `linear-gradient(90deg,
+    ${nightColor} 0%, ${nightColor} ${pct(sr1)},
+    ${dayColor} ${pct(sr2)}, ${dayColor} ${pct(ss1)},
+    ${nightColor} ${pct(ss2)}, ${nightColor} 100%)`;
+}
+
+/** "1 AM", "12 PM", etc. Full AM/PM instead of a bare "a"/"p" for readability (#9). */
+function hourScaleLabels() {
+  let s = '';
+  for (let h = 0; h < 24; h++) {
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    const ampm = h < 12 ? 'AM' : 'PM';
+    s += `<span>${h12} ${ampm}</span>`;
+  }
+  return s;
+}
+
+function showTooltip(e, text) {
+  tooltipEl.textContent = text;
+  tooltipEl.classList.add('show');
+  positionTooltip(e);
+}
+function positionTooltip(e) {
+  tooltipEl.style.left = e.clientX + 'px';
+  tooltipEl.style.top = e.clientY + 'px';
+}
+function hideTooltip() { tooltipEl.classList.remove('show'); }
+
+/* ---------------------------------------------------------------------------
+ * RENDERING
+ * -------------------------------------------------------------------------*/
+
+function updateTabsFade() {
+  if (!tabsEl || !tabsFadeLeftEl || !tabsFadeRightEl) return;
+  const overflowing = tabsEl.scrollWidth > tabsEl.clientWidth + 2;
+  tabsFadeLeftEl.classList.toggle('show', overflowing && tabsEl.scrollLeft > 4);
+  tabsFadeRightEl.classList.toggle('show', overflowing && tabsEl.scrollLeft < tabsEl.scrollWidth - tabsEl.clientWidth - 4);
+}
+if (tabsEl) tabsEl.addEventListener('scroll', updateTabsFade);
+window.addEventListener('resize', updateTabsFade);
+
+function renderTabs() {
+  tabsEl.innerHTML = '';
+  state.groups.forEach(g => {
+    const t = document.createElement('div');
+    t.className = 'tab' + (g.id === state.activeGroup ? ' active' : '');
+    t.setAttribute('role', 'button');
+    t.tabIndex = 0;
+    t.innerHTML = `<span>${escapeHtml(g.name)}</span><span class="count">${g.people.length}</span>`;
+    t.addEventListener('click', () => { state.activeGroup = g.id; save(); renderAll(); });
+    t.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') t.click(); });
+    tabsEl.appendChild(t);
+  });
+  // Fade indicators need layout to settle before measuring scrollWidth.
+  requestAnimationFrame(updateTabsFade);
+}
+
+function renderPanelTitle() {
+  panelTitleEl.value = activeGroup().name;
+}
+
+function renderPanelToolbar() {
+  const g = activeGroup();
+  const effectiveCount = g.people.length + (state.me ? 1 : 0);
+  panelToolbarEl.innerHTML = `
+    <button class="add-person-btn" id="addPersonBtn" type="button">+ Add person</button>
+    ${effectiveCount >= 2 ? `<button class="suggest-btn" id="suggestBtn" type="button">✨ Suggest meeting times</button>` : ''}
+  `;
+  el('addPersonBtn').addEventListener('click', () => openPersonModal());
+  const suggestBtn = el('suggestBtn');
+  if (suggestBtn) suggestBtn.addEventListener('click', () => openSuggestModal());
+
+  sortToggleEl.classList.toggle('active', !!g.sortByTime);
+  sortToggleEl.setAttribute('aria-pressed', g.sortByTime ? 'true' : 'false');
+}
+
+sortToggleEl.addEventListener('click', () => {
+  const g = activeGroup();
+  g.sortByTime = !g.sortByTime;
+  save(); renderPanelToolbar(); renderContent();
+});
+sortToggleEl.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') sortToggleEl.click(); });
+
+/** People to actually display for a group: "me" pinned first (if set), then
+ * the group's own people, optionally sorted earliest-to-latest local time. */
+function displayPeopleFor(g, now) {
+  const list = state.me ? [{ ...state.me, isMe: true }, ...g.people] : g.people.slice();
+  if (!g.sortByTime) return list;
+  return list
+    .map(p => ({ p, hourFloat: localTimeParts(p.tz, now).hourFloat }))
+    .sort((a, b) => a.hourFloat - b.hourFloat)
+    .map(x => x.p);
+}
+
+function renderContent() {
+  const g = activeGroup();
+  const now = new Date();
+  const people = displayPeopleFor(g, now);
+
+  if (!people.length) {
+    contentEl.innerHTML = `
+      <div class="empty-state">
+        <div class="glyph">🌍</div>
+        <h3>No one in this group yet</h3>
+        <p>Use "+ Add person" above to add a teammate — you'll see exactly where they are in their day, updating live.</p>
+      </div>`;
+    return;
+  }
+
+  let html = `<div class="rows">`;
+  people.forEach(p => {
+    const { hourFloat } = localTimeParts(p.tz, now);
+    const clock = formatClock(p.tz, now);
+    const [time, ampm] = clock.split(' ');
+    const sun = sunTimes(p.lat, p.lon, p.tz, now);
+    const gradient = buildGradient(sun.sunrise, sun.sunset);
+    const leftPct = (hourFloat / 24 * 100).toFixed(3);
+
+    let isDay = sun.sunrise !== null && sun.sunset !== null
+      ? (hourFloat >= sun.sunrise && hourFloat <= sun.sunset)
+      : true;
+    const cost = personHourCost(hourFloat);
+    let labelClass = 'night', labelText = 'Night';
+    if (cost === 0) { labelClass = 'good'; labelText = 'Working hrs'; }
+    else if (isDay) { labelClass = 'day'; labelText = 'Day'; }
+
+    const workLeft = (SCORING.workStart / 24 * 100).toFixed(3);
+    const workWidth = ((SCORING.workEnd - SCORING.workStart) / 24 * 100).toFixed(3);
+
+    const actions = p.isMe
+      ? `<div class="row-actions"><button class="editBtn" title="Edit your info" aria-label="Edit your info">✎</button></div>`
+      : `<div class="row-actions">
+           <button class="editBtn" title="Edit" aria-label="Edit ${escapeHtml(p.name)}">✎</button>
+           <button class="delBtn" title="Remove from this group" aria-label="Remove ${escapeHtml(p.name)}">🗑</button>
+         </div>`;
+
+    html += `
+    <div class="person-row${p.isMe ? ' is-you' : ''}" data-id="${p.id}" data-is-me="${!!p.isMe}">
+      <div class="row-top">
+        <div class="row-avatar${p.isMe ? ' row-avatar-you' : ''}" style="background:${p.color}">${avatarInner(p)}</div>
+        <div class="row-meta">
+          <div class="row-name">${escapeHtml(p.name)}${p.isMe ? '<span class="you-badge">You</span>' : ''}</div>
+          <div class="row-city">${escapeHtml(p.city)}</div>
+        </div>
+        <div class="row-daylabel ${labelClass}">${labelText}</div>
+        <div class="row-time${p.isMe ? ' row-time-you' : ''}">${time}<span class="ampm">${ampm}</span></div>
+        ${actions}
+      </div>
+      <div class="track-wrap">
+        <div class="track">
+          <div class="track-gradient" style="background:${gradient}"></div>
+          <div class="worktime-band" style="left:${workLeft}%; width:${workWidth}%"></div>
+          <div class="track-hourlines">${'<div></div>'.repeat(24)}</div>
+          <div class="now-tick" style="left:${leftPct}%"></div>
+          <div class="bubble" style="left:${leftPct}%; background:${p.color}" data-tip="${escapeHtml(p.name)} · ${escapeHtml(p.city)} · ${clock}">${avatarInner(p)}</div>
+        </div>
+        <div class="hourscale">${hourScaleLabels()}</div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  contentEl.innerHTML = html;
+
+  people.forEach(p => {
+    const row = contentEl.querySelector(`.person-row[data-id="${p.id}"]`);
+    if (!row) return;
+    row.querySelector('.editBtn').addEventListener('click', () => {
+      if (p.isMe) openOnboarding({ editing: true });
+      else openPersonModal(p.id);
+    });
+    const delBtn = row.querySelector('.delBtn');
+    if (delBtn) delBtn.addEventListener('click', () => {
+      if (confirm(`Remove ${p.name} from this group?`)) {
+        g.people = g.people.filter(x => x.id !== p.id);
+        save(); renderAll();
+      }
+    });
+    const bubble = row.querySelector('.bubble');
+    bubble.addEventListener('mouseenter', e => showTooltip(e, bubble.dataset.tip));
+    bubble.addEventListener('mousemove', positionTooltip);
+    bubble.addEventListener('mouseleave', hideTooltip);
+  });
+}
+
+function renderNowReadout() {
+  nowReadoutEl.textContent = new Date().toLocaleString('en-US', {
+    weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true
+  }) + ' (your time)';
+}
+
+function renderAll() {
+  renderTabs();
+  renderPanelTitle();
+  renderPanelToolbar();
+  renderContent();
+  renderNowReadout();
+}
+
+/* ---------------------------------------------------------------------------
+ * ADD GROUP
+ * -------------------------------------------------------------------------*/
+
+el('addGroupBtn').addEventListener('click', () => {
+  const name = prompt('Name this group (e.g. "Design Team", "Client calls with Acme")');
+  if (name === null) return;
+  const g = { id: uid(), name: name.trim() || 'New group', people: [], sortByTime: false };
+  state.groups.push(g);
+  state.activeGroup = g.id;
+  save(); renderAll();
+  openPersonModal();
+});
+
+panelTitleEl.addEventListener('change', () => {
+  const g = activeGroup();
+  g.name = panelTitleEl.value.trim() || 'Untitled group';
+  save(); renderTabs();
+});
+panelTitleEl.addEventListener('keydown', e => { if (e.key === 'Enter') panelTitleEl.blur(); });
+
+/* ---------------------------------------------------------------------------
+ * PERSON MODAL (add / edit)
+ * Search covers city, country, state/province, and aliases (core.searchPlaces).
+ * If nothing matches, a manual UTC-offset picker is offered as a fallback so
+ * no one is ever stuck unable to add a teammate.
+ * -------------------------------------------------------------------------*/
+
+let modalOverlay = null;
+
+function openPersonModal(personId) {
+  const editingId = personId || null;
+  const g = activeGroup();
+  const existing = editingId ? g.people.find(p => p.id === editingId) : null;
+
+  const draft = existing ? { ...existing } : {
+    name: '', nickname: '', city: '', tz: '', lat: 0, lon: 0,
+    avatarMode: 'emoji', emoji: EMOJI_OPTIONS[Math.floor(Math.random() * EMOJI_OPTIONS.length)],
+    photoUrl: '', color: COLOR_OPTIONS[g.people.length % COLOR_OPTIONS.length]
+  };
+
+  modalOverlay = document.createElement('div');
+  modalOverlay.className = 'modal-overlay';
+  modalOverlay.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2>${existing ? 'Edit person' : 'Add a person'}</h2>
+      <p class="sub">${existing ? 'Update their details.' : 'Add a teammate to see their local time.'}</p>
+
+      <div class="avatar-preview" id="avatarPreview" style="background:${draft.color}"></div>
+
+      <div class="field">
+        <label for="fName">Name</label>
+        <input type="text" id="fName" placeholder="e.g. Amy Chen" value="${escapeHtml(draft.name)}">
+      </div>
+
+      <div class="field" style="position:relative;">
+        <label for="fCity">City, state, or country</label>
+        <input type="text" id="fCity" placeholder="Try a city, a state like California, or a country" value="${escapeHtml(draft.city)}" autocomplete="off">
+        <div class="city-suggestions" id="citySuggestions"></div>
+        <div class="hint" id="cityHint">${draft.tz ? draft.tz : 'Search finds cities by name, state/province, or country.'}</div>
+        <button type="button" class="link-btn" id="manualOffsetToggle">Can't find their city? Set time zone manually</button>
+        <div id="manualOffsetBody" style="display:none; margin-top:8px;"></div>
+      </div>
+
+      <div class="field">
+        <label>Bubble shows</label>
+        <div class="avatar-mode-tabs" id="avatarModeTabs">
+          <button data-mode="emoji" type="button">Emoji</button>
+          <button data-mode="initials" type="button">Initials</button>
+          <button data-mode="nickname" type="button">Nickname</button>
+          <button data-mode="photo" type="button">Photo</button>
+        </div>
+        <div id="modeBody"></div>
+      </div>
+
+      <div class="field">
+        <label>Row color</label>
+        <div class="color-grid" id="colorGrid"></div>
+      </div>
+
+      <div class="modal-actions">
+        ${existing ? `<button class="btn btn-danger" id="deleteBtn" type="button">Remove</button>` : `<button class="btn btn-secondary" id="cancelBtn" type="button">Cancel</button>`}
+        <button class="btn btn-primary" id="saveBtn" type="button">${existing ? 'Save' : 'Add person'}</button>
+      </div>
+      ${existing ? `<div style="margin-top:10px;"><button class="btn btn-secondary" id="cancelBtn2" type="button" style="width:100%;">Cancel</button></div>` : ''}
+    </div>
+  `;
+  document.body.appendChild(modalOverlay);
+
+  const fName = modalOverlay.querySelector('#fName');
+  const fCity = modalOverlay.querySelector('#fCity');
+  const citySuggestions = modalOverlay.querySelector('#citySuggestions');
+  const cityHint = modalOverlay.querySelector('#cityHint');
+  const avatarModeTabs = modalOverlay.querySelector('#avatarModeTabs');
+  const modeBody = modalOverlay.querySelector('#modeBody');
+  const colorGrid = modalOverlay.querySelector('#colorGrid');
+  const avatarPreview = modalOverlay.querySelector('#avatarPreview');
+  const manualToggle = modalOverlay.querySelector('#manualOffsetToggle');
+  const manualBody = modalOverlay.querySelector('#manualOffsetBody');
+
+  // selectedPlace: either a real PLACES entry, or a synthetic {name, tz:null, offsetMinutes, lat, lon}
+  // built from the manual-offset picker. Both shapes are normalized before saving.
+  let selectedPlace = draft.tz ? { name: draft.city, tz: draft.tz, lat: draft.lat, lon: draft.lon } : null;
+  let manualOffsetMinutes = null;
+
+  function updatePreview() {
+    avatarPreview.style.background = draft.color;
+    if (draft.avatarMode === 'photo' && draft.photoUrl) avatarPreview.innerHTML = `<img src="${escapeHtml(draft.photoUrl)}" alt="">`;
+    else if (draft.avatarMode === 'nickname' && draft.nickname) avatarPreview.textContent = draft.nickname.slice(0, 3);
+    else if (draft.avatarMode === 'emoji') avatarPreview.textContent = draft.emoji;
+    else {
+      const initials = (draft.name || '').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+      avatarPreview.textContent = initials || '?';
+    }
+  }
+
+  function renderModeBody() {
+    avatarModeTabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === draft.avatarMode));
+    if (draft.avatarMode === 'emoji') {
+      modeBody.innerHTML = `<div class="emoji-grid">${EMOJI_OPTIONS.map(e => `<button type="button" data-e="${e}" class="${e === draft.emoji ? 'sel' : ''}">${e}</button>`).join('')}</div>`;
+      modeBody.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { draft.emoji = b.dataset.e; renderModeBody(); updatePreview(); }));
+    } else if (draft.avatarMode === 'nickname') {
+      modeBody.innerHTML = `<div class="field" style="margin-bottom:0;"><input type="text" id="fNick" maxlength="6" placeholder="e.g. Ray, A.C." value="${escapeHtml(draft.nickname)}"></div>`;
+      modeBody.querySelector('#fNick').addEventListener('input', e => { draft.nickname = e.target.value; updatePreview(); });
+    } else if (draft.avatarMode === 'photo') {
+      modeBody.innerHTML = `<div class="field" style="margin-bottom:0;"><input type="text" id="fPhoto" placeholder="Paste an image URL" value="${escapeHtml(draft.photoUrl)}"><div class="hint">Any public image link. Nothing is uploaded — just linked.</div></div>`;
+      modeBody.querySelector('#fPhoto').addEventListener('input', e => { draft.photoUrl = e.target.value; updatePreview(); });
+    } else {
+      modeBody.innerHTML = `<div class="hint">Uses the first letters of their name.</div>`;
+    }
+  }
+
+  avatarModeTabs.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { draft.avatarMode = b.dataset.mode; renderModeBody(); updatePreview(); }));
+
+  colorGrid.innerHTML = COLOR_OPTIONS.map(c => `<div class="color-swatch ${c === draft.color ? 'sel' : ''}" data-c="${c}" style="background:${c}"></div>`).join('');
+  colorGrid.querySelectorAll('.color-swatch').forEach(sw => sw.addEventListener('click', () => {
+    draft.color = sw.dataset.c;
+    colorGrid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('sel'));
+    sw.classList.add('sel');
+    updatePreview();
+  }));
+
+  fName.addEventListener('input', () => { draft.name = fName.value; updatePreview(); });
+
+  function renderCitySuggestions(matches) {
+    if (!matches.length) {
+      citySuggestions.innerHTML = `<div class="no-match">No matching city. Try a state, country — or set the time zone manually below.</div>`;
+      citySuggestions.classList.add('show');
+      return;
+    }
+    citySuggestions.innerHTML = matches.map(c => {
+      const sub = [c.admin, c.country].filter(Boolean).join(', ');
+      return `<div data-name="${escapeHtml(c.name)}"><span>${escapeHtml(c.name)}</span><span class="csub">${escapeHtml(sub)}</span></div>`;
+    }).join('');
+    citySuggestions.classList.add('show');
+    citySuggestions.querySelectorAll('div[data-name]').forEach(d => {
+      d.addEventListener('click', () => {
+        const c = PLACES.find(x => x.name === d.dataset.name);
+        selectedPlace = c;
+        manualOffsetMinutes = null;
+        fCity.value = c.name;
+        cityHint.textContent = c.tz;
+        cityHint.style.color = '';
+        citySuggestions.classList.remove('show');
+        manualBody.style.display = 'none';
+      });
+    });
+  }
+
+  function invalidateSelectionAndSearch() {
+    const q = fCity.value.trim();
+    selectedPlace = null;
+    manualOffsetMinutes = null; // typing again means neither prior choice is still valid
+    if (el('fOffset')) el('fOffset').value = '';
+    cityHint.textContent = 'Search finds cities by name, state/province, or country.';
+    cityHint.style.color = '';
+    if (!q) { citySuggestions.classList.remove('show'); return; }
+    renderCitySuggestions(searchPlaces(PLACES, q, 8));
+  }
+  fCity.addEventListener('input', invalidateSelectionAndSearch);
+  // Refocusing (e.g. clicking back in) should just re-show matches for what's
+  // already typed, without discarding a selection the person already made.
+  fCity.addEventListener('focus', () => {
+    if (!fCity.value.trim()) return;
+    if (selectedPlace || manualOffsetMinutes !== null) return;
+    renderCitySuggestions(searchPlaces(PLACES, fCity.value.trim(), 8));
+  });
+
+  // Manual UTC-offset fallback (requirement: let people add someone even when
+  // search can't find their city — e.g. a small town not in our dataset).
+  manualToggle.addEventListener('click', () => {
+    const showing = manualBody.style.display !== 'none';
+    manualBody.style.display = showing ? 'none' : 'block';
+    if (!showing) {
+      manualBody.innerHTML = `
+        <div class="field" style="margin-bottom:0;">
+          <label for="fOffset">Their current time zone offset</label>
+          <select id="fOffset">
+            <option value="">Choose an offset…</option>
+            ${UTC_OFFSETS.map(o => `<option value="${o.minutes}">${o.label}</option>`).join('')}
+          </select>
+          <div class="hint">Approximate — won't auto-adjust for daylight saving. Prefer searching a nearby big city if you can.</div>
+        </div>`;
+      el('fOffset').addEventListener('change', e => {
+        const minutes = parseInt(e.target.value, 10);
+        if (isNaN(minutes)) { manualOffsetMinutes = null; return; }
+        manualOffsetMinutes = minutes;
+        selectedPlace = null;
+        const label = UTC_OFFSETS.find(o => o.minutes === minutes).label;
+        fCity.value = fCity.value.trim() || label;
+        cityHint.textContent = `Manual: ${label} (fixed, not DST-aware)`;
+        cityHint.style.color = '';
+        citySuggestions.classList.remove('show');
+      });
+    }
+  });
+
+  function outsideClose(e) {
+    if (!citySuggestions.contains(e.target) && e.target !== fCity) citySuggestions.classList.remove('show');
+  }
+  document.addEventListener('click', outsideClose);
+
+  renderModeBody();
+  updatePreview();
+
+  const closeModal = () => {
+    document.removeEventListener('click', outsideClose);
+    modalOverlay.remove();
+    modalOverlay = null;
+  };
+  modalOverlay.querySelectorAll('#cancelBtn, #cancelBtn2').forEach(b => b && b.addEventListener('click', closeModal));
+  modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+
+  const delBtn = modalOverlay.querySelector('#deleteBtn');
+  if (delBtn) delBtn.addEventListener('click', () => {
+    if (confirm(`Remove ${draft.name}?`)) {
+      const gr = activeGroup();
+      gr.people = gr.people.filter(p => p.id !== editingId);
+      save(); closeModal(); renderAll();
+    }
+  });
+
+  modalOverlay.querySelector('#saveBtn').addEventListener('click', () => {
+    if (!draft.name.trim()) { fName.focus(); fName.style.borderColor = '#E37373'; return; }
+
+    // Valid location = a freshly picked place, a freshly picked manual offset,
+    // OR (when editing) the person's unchanged existing city.
+    const unchangedExistingCity = existing && fCity.value === draft.city && draft.tz;
+    if (!selectedPlace && manualOffsetMinutes === null && !unchangedExistingCity) {
+      cityHint.textContent = 'Pick a suggested city, or set a time zone manually.';
+      cityHint.style.color = '#E37373';
+      fCity.focus();
+      return;
+    }
+
+    let locationData;
+    if (selectedPlace) {
+      locationData = { city: selectedPlace.name, tz: selectedPlace.tz, lat: selectedPlace.lat, lon: selectedPlace.lon };
+    } else if (manualOffsetMinutes !== null) {
+      // Synthetic fixed-offset "timezone" (see core.js makeFixedTz) — supports
+      // any offset including the fractional ones real IANA zones use (+5:30,
+      // +5:45), unlike Intl's whole-hour-only Etc/GMT zones.
+      const tzName = makeFixedTz(manualOffsetMinutes);
+      const label = UTC_OFFSETS.find(o => o.minutes === manualOffsetMinutes).label;
+      locationData = { city: fCity.value.trim() || label, tz: tzName, lat: 0, lon: 0 };
+    } else {
+      locationData = { city: draft.city, tz: draft.tz, lat: draft.lat, lon: draft.lon };
+    }
+
+    const gr = activeGroup();
+    const record = {
+      name: draft.name.trim(), nickname: draft.nickname,
+      city: locationData.city, tz: locationData.tz, lat: locationData.lat, lon: locationData.lon,
+      avatarMode: draft.avatarMode, emoji: draft.emoji, photoUrl: draft.photoUrl, color: draft.color
+    };
+    if (existing) Object.assign(existing, record);
+    else gr.people.push({ id: uid(), ...record });
+
+    save();
+    closeModal();
+    renderAll();
+  });
+
+  setTimeout(() => fName.focus(), 30);
+}
+
+/* ---------------------------------------------------------------------------
+ * SUGGEST MEETING TIMES
+ * Shows the top slots from suggestMeetingTimes(), each labeled with who it's
+ * hardest on — so the scoring isn't a black box, and the "why" is visible.
+ * -------------------------------------------------------------------------*/
+
+function openSuggestModal() {
+  const g = activeGroup();
+  const people = displayPeopleFor(g, new Date()); // includes "me" if set, so suggestions account for your own schedule too
+  const suggestions = suggestMeetingTimes(people, new Date(), 3);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2>Good times to meet</h2>
+      <p class="sub">Ranked to avoid badly inconveniencing any one person — not just the lowest total. Times are rounded to the nearest half hour.</p>
+      <div id="suggestList"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="closeSuggest" type="button">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#closeSuggest').addEventListener('click', () => overlay.remove());
+
+  const listEl = overlay.querySelector('#suggestList');
+  if (!suggestions.length) {
+    listEl.innerHTML = `<p class="hint">Add at least two people to get suggestions.</p>`;
+    return;
+  }
+
+  listEl.innerHTML = suggestions.map((s, i) => {
+    const rows = s.perPerson.map(pp => {
+      const person = people.find(p => p.id === pp.personId);
+      const clockStr = formatClock(person.tz, s.instant);
+      const tag = pp.cost === 0 ? 'good' : pp.cost < 1 ? 'day' : 'night';
+      const tagText = pp.cost === 0 ? 'Working hrs' : pp.cost < 1 ? 'Outside hours' : 'Asleep';
+      return `<div class="suggest-person">
+        <span class="row-avatar" style="width:22px;height:22px;font-size:11px;background:${person.color}">${avatarInner(person)}</span>
+        <span class="suggest-name">${escapeHtml(person.name)}${person.isMe ? ' (you)' : ''}</span>
+        <span class="suggest-clock">${clockStr}</span>
+        <span class="row-daylabel ${tag}" style="font-size:9.5px;">${tagText}</span>
+      </div>`;
+    }).join('');
+    const whenLabel = s.instant.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true }) + ' (your time)';
+    return `
+      <div class="suggest-slot">
+        <div class="suggest-slot-head">
+          <span class="suggest-rank">#${i + 1}</span>
+          <span class="suggest-when">${whenLabel}</span>
+        </div>
+        <div class="suggest-why">Hardest on <strong>${escapeHtml(s.worstPerson)}</strong></div>
+        <div class="suggest-people">${rows}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ---------------------------------------------------------------------------
+ * SETTINGS DROPDOWN (export / import / theme / edit-me)
+ * -------------------------------------------------------------------------*/
+
+const settingsMenuEl = el('settingsMenu');
+const settingsBtnEl = el('settingsBtn');
+const settingsDropdownEl = el('settingsDropdown');
+
+function closeSettingsDropdown() {
+  settingsDropdownEl.classList.remove('show');
+  settingsBtnEl.setAttribute('aria-expanded', 'false');
+}
+settingsBtnEl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const showing = settingsDropdownEl.classList.toggle('show');
+  settingsBtnEl.setAttribute('aria-expanded', showing ? 'true' : 'false');
+});
+document.addEventListener('click', (e) => {
+  if (!settingsMenuEl.contains(e.target)) closeSettingsDropdown();
+});
+
+el('themeToggleBtn').addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(currentTheme);
+  closeSettingsDropdown();
+});
+
+el('editMeBtn').addEventListener('click', () => {
+  closeSettingsDropdown();
+  openOnboarding({ editing: true });
+});
+
+el('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'timetogether-data.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  closeSettingsDropdown();
+});
+el('importBtn').addEventListener('click', () => { el('importFile').click(); closeSettingsDropdown(); });
+el('importFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!parsed.groups) throw new Error('bad format');
+      if (!('me' in parsed)) parsed.me = null;
+      parsed.groups.forEach(g => { if (!('sortByTime' in g)) g.sortByTime = false; });
+      state = parsed;
+      if (!state.activeGroup && state.groups.length) state.activeGroup = state.groups[0].id;
+      save(); renderAll();
+    } catch (err) {
+      alert('Could not read that file — make sure it is a TimeTogether export.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ---------------------------------------------------------------------------
+ * ONBOARDING ("who are you") — a lightweight one-time step so the person
+ * using the app is a permanent, pinned row across every group, rather than
+ * having to re-add themselves each time. Reuses the same field patterns as
+ * the person modal, kept intentionally shorter (no avatar-mode picker) since
+ * this always runs before the person has seen the rest of the UI.
+ * -------------------------------------------------------------------------*/
+
+function openOnboarding(opts = {}) {
+  const editing = !!opts.editing;
+  const draft = editing && state.me ? { ...state.me } : {
+    name: '', city: '', tz: '', lat: 0, lon: 0, color: COLOR_OPTIONS[0]
+  };
+  let selectedPlace = draft.tz ? { name: draft.city, tz: draft.tz, lat: draft.lat, lon: draft.lon } : null;
+
+  const root = el('onboardingRoot');
+  const overlay = document.createElement('div');
+  overlay.className = 'onboarding-overlay';
+  overlay.innerHTML = `
+    <div class="onboarding-card">
+      <div class="glyph">👋</div>
+      <h1>${editing ? 'Your info' : "What's your name and city?"}</h1>
+      <p class="sub">${editing ? "Update how you appear — you're pinned to the top of every group." : "You'll show up pinned at the top of every group, so your team can always see your time at a glance."}</p>
+
+      <div class="field">
+        <label for="obName">Your name</label>
+        <input type="text" id="obName" placeholder="e.g. Priya Shah" value="${escapeHtml(draft.name)}">
+      </div>
+      <div class="field" style="position:relative;">
+        <label for="obCity">Your city</label>
+        <input type="text" id="obCity" placeholder="Try a city, a state, or a country" value="${escapeHtml(draft.city)}" autocomplete="off">
+        <div class="city-suggestions" id="obCitySuggestions"></div>
+        <div class="hint" id="obCityHint">${draft.tz ? draft.tz : 'Search finds cities by name, state/province, or country.'}</div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="obSaveBtn" type="button">${editing ? 'Save' : "That's me"}</button>
+      </div>
+      ${!editing ? `<button class="onboarding-skip" id="obSkipBtn" type="button">Skip for now</button>` : ''}
+    </div>
+  `;
+  root.appendChild(overlay);
+
+  const obName = overlay.querySelector('#obName');
+  const obCity = overlay.querySelector('#obCity');
+  const obCitySuggestions = overlay.querySelector('#obCitySuggestions');
+  const obCityHint = overlay.querySelector('#obCityHint');
+
+  function renderSuggestions(matches) {
+    if (!matches.length) {
+      obCitySuggestions.innerHTML = `<div class="no-match">No matching city. Try a state or country.</div>`;
+      obCitySuggestions.classList.add('show');
+      return;
+    }
+    obCitySuggestions.innerHTML = matches.map(c => {
+      const sub = [c.admin, c.country].filter(Boolean).join(', ');
+      return `<div data-name="${escapeHtml(c.name)}"><span>${escapeHtml(c.name)}</span><span class="csub">${escapeHtml(sub)}</span></div>`;
+    }).join('');
+    obCitySuggestions.classList.add('show');
+    obCitySuggestions.querySelectorAll('div[data-name]').forEach(d => {
+      d.addEventListener('click', () => {
+        const c = PLACES.find(x => x.name === d.dataset.name);
+        selectedPlace = c;
+        obCity.value = c.name;
+        obCityHint.textContent = c.tz;
+        obCityHint.style.color = '';
+        obCitySuggestions.classList.remove('show');
+      });
+    });
+  }
+  obCity.addEventListener('input', () => {
+    selectedPlace = null;
+    obCityHint.textContent = 'Search finds cities by name, state/province, or country.';
+    obCityHint.style.color = '';
+    const q = obCity.value.trim();
+    if (!q) { obCitySuggestions.classList.remove('show'); return; }
+    renderSuggestions(searchPlaces(PLACES, q, 8));
+  });
+  function outsideClose(e) {
+    if (overlay.parentNode && !obCitySuggestions.contains(e.target) && e.target !== obCity) {
+      obCitySuggestions.classList.remove('show');
+    }
+  }
+  document.addEventListener('click', outsideClose);
+
+  overlay.querySelector('#obSaveBtn').addEventListener('click', () => {
+    if (!obName.value.trim()) { obName.focus(); obName.style.borderColor = 'var(--danger)'; return; }
+    const unchanged = editing && obCity.value === draft.city && draft.tz;
+    if (!selectedPlace && !unchanged) {
+      obCityHint.textContent = 'Pick a suggested city from the list.';
+      obCityHint.style.color = 'var(--danger)';
+      obCity.focus();
+      return;
+    }
+    const place = selectedPlace || { name: draft.city, tz: draft.tz, lat: draft.lat, lon: draft.lon };
+    state.me = {
+      id: (state.me && state.me.id) || uid(),
+      name: obName.value.trim(),
+      nickname: '', avatarMode: 'initials', emoji: '👋', photoUrl: '',
+      color: draft.color,
+      city: place.name, tz: place.tz, lat: place.lat, lon: place.lon
+    };
+    save();
+    document.removeEventListener('click', outsideClose);
+    overlay.remove();
+    renderAll();
+    if (opts.thenShowTour) openTour();
+  });
+
+  const skipBtn = overlay.querySelector('#obSkipBtn');
+  if (skipBtn) skipBtn.addEventListener('click', () => {
+    document.removeEventListener('click', outsideClose);
+    overlay.remove();
+    if (opts.thenShowTour) openTour();
+  });
+
+  setTimeout(() => obName.focus(), 30);
+}
+
+/* ---------------------------------------------------------------------------
+ * GUIDED TOUR
+ * A short, skippable walkthrough shown once on first visit (after the "who
+ * are you" step), and replayable anytime from Settings → Show walkthrough,
+ * or the "?" button in the top bar. Deliberately a plain step-by-step card
+ * rather than a spotlight that points at live page elements — spotlights are
+ * fragile (positions shift across screen sizes and app states), and getting
+ * the basics right and predictable matters more here than a flashier tour.
+ * -------------------------------------------------------------------------*/
+
+const TOUR_KEY = 'timetogether_tour_seen';
+const TOUR_STEPS = [
+  {
+    glyph: '🌍',
+    title: 'Groups, at the top',
+    body: 'Each tab up top is a group — a set of people you check in on together, like "Design Team" or "Calls with Acme". Tap the "+" next to the tabs to start a new one.'
+  },
+  {
+    glyph: '👤',
+    title: 'Add people with "+ Add person"',
+    body: 'Inside a group, "+ Add person" adds a teammate: their name, their city (search finds it, or set a time zone manually if it\'s not in the list), and how their little bubble looks.'
+  },
+  {
+    glyph: '🕐',
+    title: 'Each row is their day',
+    body: 'The bar under each person is their 24-hour day. The bubble sits at their current local time and drifts as the day goes on — dark means night, the green band is roughly their 9–6 working hours.'
+  },
+  {
+    glyph: '↕',
+    title: 'Sort and edit anytime',
+    body: '"Sort by time" reorders everyone earliest-to-latest. Tap the pencil on any row to edit them, or the bin to remove them from that group — your own row (once you\'ve set it up) can\'t be removed, only edited.'
+  },
+  {
+    glyph: '✨',
+    title: 'Suggest meeting times',
+    body: 'Once a group has 2 or more people, "✨ Suggest meeting times" appears — it finds slots that avoid badly inconveniencing any one person, not just whatever has the lowest total, and always rounds to a clean half hour.'
+  }
+];
+
+function loadTourSeen() {
+  try { return localStorage.getItem(TOUR_KEY) === '1'; }
+  catch (e) { return false; }
+}
+function markTourSeen() {
+  try { localStorage.setItem(TOUR_KEY, '1'); } catch (e) {}
+}
+
+function openTour() {
+  let stepIndex = 0;
+  const root = el('tourRoot');
+  const overlay = document.createElement('div');
+  overlay.className = 'tour-overlay';
+  root.appendChild(overlay);
+
+  function render() {
+    const step = TOUR_STEPS[stepIndex];
+    const isLast = stepIndex === TOUR_STEPS.length - 1;
+    overlay.innerHTML = `
+      <div class="tour-card" role="dialog" aria-modal="true">
+        <div class="tour-step-glyph">${step.glyph}</div>
+        <h2>${escapeHtml(step.title)}</h2>
+        <p>${escapeHtml(step.body)}</p>
+        <div class="tour-dots">
+          ${TOUR_STEPS.map((_, i) => `<div class="tour-dot${i === stepIndex ? ' active' : ''}"></div>`).join('')}
+        </div>
+        <div class="tour-actions">
+          <button class="tour-skip" id="tourSkipBtn" type="button">Skip</button>
+          <div class="tour-next-group">
+            ${stepIndex > 0 ? `<button class="btn btn-secondary" id="tourBackBtn" type="button">Back</button>` : ''}
+            <button class="btn btn-primary" id="tourNextBtn" type="button">${isLast ? 'Got it' : 'Next'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+    overlay.querySelector('#tourSkipBtn').addEventListener('click', close);
+    const backBtn = overlay.querySelector('#tourBackBtn');
+    if (backBtn) backBtn.addEventListener('click', () => { stepIndex--; render(); });
+    overlay.querySelector('#tourNextBtn').addEventListener('click', () => {
+      if (isLast) { close(); return; }
+      stepIndex++; render();
+    });
+  }
+
+  function close() {
+    markTourSeen();
+    overlay.remove();
+  }
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  render();
+}
+
+el('helpBtn').addEventListener('click', () => openTour());
+el('replayTourBtn').addEventListener('click', () => { closeSettingsDropdown(); openTour(); });
+
+// First-run: if no one has set up "me" yet, offer onboarding once, then show
+// the tour right after it closes (skip or save both lead here) so a new
+// visitor sees "who are you" first and the walkthrough second, never both
+// stacked on screen at once. If "me" is already set, just show the tour.
+if (!state.me) openOnboarding({ editing: false, thenShowTour: !loadTourSeen() });
+else if (!loadTourSeen()) openTour();
+
+/* ---------------------------------------------------------------------------
+ * INIT
+ * -------------------------------------------------------------------------*/
+
+renderAll();
+setInterval(() => { renderContent(); renderNowReadout(); }, 30000);
+
+</script>
+</body>
+</html>
